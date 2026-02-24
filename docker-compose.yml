@@ -1,0 +1,32 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lunar-gallery
+    # network_mode: host (removed for better reverse proxy compatibility)
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      # Persist the SQLite database
+      - db_data:/app/prisma
+      # Persist uploaded photos
+      - uploads_data:/app/public/uploads
+    restart: unless-stopped
+    
+    # ----------------------------------------------------
+    # OPTIONAL: Uncomment below if using Nginx Proxy Manager
+    # ----------------------------------------------------
+    # networks:
+    #   - default
+    #   - nginxProxyManagerNetwork # Change to your NPM network name
+
+# networks:
+#   nginxProxyManagerNetwork:
+#     external: true
+
+volumes:
+  db_data:
+  uploads_data:

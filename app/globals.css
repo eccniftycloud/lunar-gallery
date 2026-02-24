@@ -13,9 +13,13 @@
 
   --color-nebula-500: #a855f7;
   --color-nebula-400: #c084fc;
+  --color-nebula-300: #d8b4fe;
 
   --color-starlight-100: #eef2ff;
   --color-starlight-200: #e0e7ff;
+
+  --color-lunar-500: #6366f1;
+  --color-lunar-400: #818cf8;
 }
 
 :root {
@@ -33,7 +37,8 @@ body {
   overflow-x: hidden;
   background-image:
     radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.15) 0%, transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.15) 0%, transparent 25%);
+    radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.12) 0%, transparent 25%),
+    radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.08) 0%, transparent 30%);
 }
 
 /* Custom Utilities */
@@ -41,4 +46,67 @@ body {
   background: var(--card-bg);
   backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
+}
+
+/* Cosmic float animation */
+@keyframes cosmic-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-8px) rotate(1deg); }
+  66% { transform: translateY(4px) rotate(-1deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(168, 85, 247, 0.15); }
+  50% { box-shadow: 0 0 40px rgba(168, 85, 247, 0.3), 0 0 60px rgba(168, 85, 247, 0.1); }
+}
+
+@keyframes aurora-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@utility animate-float {
+  animation: cosmic-float 6s ease-in-out infinite;
+}
+
+@utility animate-glow {
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+@utility animate-aurora {
+  background-size: 200% 200%;
+  animation: aurora-shift 8s ease-in-out infinite;
+}
+
+/* Smooth scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(168, 85, 247, 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(168, 85, 247, 0.5);
+}
+
+/* Lunar title glow */
+.lunar-title {
+  animation: aurora-shift 8s ease-in-out infinite, lunar-glow 4s ease-in-out infinite;
+}
+
+@keyframes lunar-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 15px rgba(255,255,255,0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 30px rgba(200,210,255,0.5)) drop-shadow(0 0 60px rgba(168,130,255,0.2));
+  }
 }

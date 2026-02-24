@@ -73,6 +73,16 @@ export default function UploadForm({ albums, initialAlbumId }: UploadFormProps) 
             </div>
 
             <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-300">Description <span className="text-gray-500">(optional)</span></label>
+                <textarea
+                    name="description"
+                    placeholder="Describe what's in this capture..."
+                    rows={3}
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-nebula-500 resize-none"
+                />
+            </div>
+
+            <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-300">Image File</label>
                 <div className="relative border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors group">
                     <input

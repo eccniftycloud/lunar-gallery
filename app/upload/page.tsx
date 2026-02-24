@@ -1,8 +1,15 @@
 import { getAlbums, createAlbum } from "@/app/lib/actions";
 import UploadForm from "@/components/UploadForm";
 import { Plus } from "lucide-react";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 export default async function UploadPage({ searchParams }: { searchParams: { album?: string } }) {
+    const session = await auth();
+    if (!session?.user) {
+        redirect('/login');
+    }
+
     const albums = await getAlbums();
     const { album } = searchParams;
 
