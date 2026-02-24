@@ -70,8 +70,11 @@ The app will be available on port 3000. Uploaded photos and the SQLite database 
 | `ADMIN_PASSWORD` | Admin login password | `my-secure-password-123` |
 | `AUTH_SECRET` | JWT signing key | `super-secret-random-string-123!` |
 | `NEXTAUTH_SECRET` | Same as AUTH_SECRET | `super-secret-random-string-123!` |
+| `AUTH_URL` | Your public app URL | `https://your-domain.com` |
 
 *(Pro tip: For production, you can generate a random true secret in terminal with `openssl rand -base64 32`)*
+
+> 🔗 **`AUTH_URL` is critical!** Set this to your actual public domain (e.g. `https://gallery.yourdomain.com`). If left as `http://localhost:3000`, login/logout redirects will fail when accessing the app from the web via a reverse proxy or Cloudflare Tunnel. For local development only, `http://localhost:3000` is fine.
 
 Default admin username is `admin`. To log in, visit `/login`.
 
