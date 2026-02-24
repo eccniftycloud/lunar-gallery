@@ -2,7 +2,7 @@
 
 A stunning astrophotography gallery and observatory app built with Next.js, Prisma, and Auth.js. Upload, organize, and showcase your astronomy captures in a beautiful cosmic-themed interface.
 
-![Lunar Gallery Demo](docs/demo-add-album.webp)
+![Lunar Gallery Dashboard](docs/screenshot-dashboard.png)
 
 ## ✨ Features
 
