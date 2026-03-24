@@ -208,6 +208,34 @@ export async function getPhotos(albumId?: string, page: number = 0, limit: numbe
     })
 }
 
+export async function searchPhotos(query: string, albumId?: string) {
+    if (!query || query.trim().length === 0) {
+        return getPhotos(albumId, 0, 100);
+    }
+
+    const searchTerm = `%${query}%`;
+
+    if (albumId) {
+        return prisma.$queryRawUnsafe(
+            `SELECT id, url, title, description, width, height, albumId, createdAt
+             FROM Photo
+             WHERE albumId = ? AND (title LIKE ? OR description LIKE ?)
+             ORDER BY createdAt DESC
+             LIMIT 100`,
+            albumId, searchTerm, searchTerm
+        );
+    }
+
+    return prisma.$queryRawUnsafe(
+        `SELECT id, url, title, description, width, height, albumId, createdAt
+         FROM Photo
+         WHERE title LIKE ? OR description LIKE ?
+         ORDER BY createdAt DESC
+         LIMIT 100`,
+        searchTerm, searchTerm
+    );
+}
+
 export async function getAlbum(id: string) {
     return prisma.album.findUnique({
         where: { id },

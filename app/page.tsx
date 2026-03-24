@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAlbums, getPhotos, getAdminConfig } from "./lib/actions";
 import AlbumCard from "@/components/ui/AlbumCard";
 import PhotoCard from "@/components/ui/PhotoCard";
+import SearchBar from "@/components/ui/SearchBar";
 import { Plus, ArrowRight } from "lucide-react";
 import { auth } from "@/auth";
 import HeroMoon from "@/components/ui/HeroMoon";
@@ -55,6 +56,11 @@ export default async function Home() {
             Browse Albums
           </Link>
         </div>
+      </section>
+
+      {/* Search */}
+      <section className="max-w-2xl mx-auto w-full px-4">
+        <SearchBar isAdmin={!!session?.user} albums={albums.map(a => ({ id: a.id, name: a.name }))} />
       </section>
 
       {/* Albums Section */}
