@@ -189,20 +189,28 @@ export async function uploadPhoto(formData: FormData) {
     return { success: true }
 }
 
-export async function getPhotos(albumId?: string, page: number = 0, limit: number = 20) {
+export type SortOption = 'newest' | 'oldest' | 'name';
+
+export async function getPhotos(albumId?: string, page: number = 0, limit: number = 20, sortBy: SortOption = 'newest') {
     const skip = page * limit;
+
+    const orderBy = sortBy === 'oldest'
+        ? { createdAt: 'asc' as const }
+        : sortBy === 'name'
+            ? { title: 'asc' as const }
+            : { createdAt: 'desc' as const };
 
     if (albumId) {
         return prisma.photo.findMany({
             where: { albumId },
-            orderBy: { createdAt: 'desc' },
+            orderBy,
             skip,
             take: limit,
         })
     }
 
     return prisma.photo.findMany({
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip,
         take: limit,
     })

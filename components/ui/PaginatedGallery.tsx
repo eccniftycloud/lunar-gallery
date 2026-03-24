@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import PhotoCard from "./PhotoCard";
+import SortControl from "./SortControl";
 import { getPhotos } from "@/app/lib/actions";
+import type { SortOption } from "@/app/lib/actions";
 import { Loader2 } from "lucide-react";
 
 interface Photo {
@@ -32,13 +34,15 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(initialPhotos.length === 20);
+    const [sortBy, setSortBy] = useState<SortOption>("newest");
+    const [sortLoading, setSortLoading] = useState(false);
 
     const loadMore = async () => {
         if (loading || !hasMore) return;
 
         setLoading(true);
         try {
-            const nextPhotos = await getPhotos(albumId, page, 20);
+            const nextPhotos = await getPhotos(albumId, page, 20, sortBy);
 
             if (nextPhotos.length < 20) {
                 setHasMore(false);
@@ -55,9 +59,34 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
         }
     };
 
+    const handleSortChange = async (newSort: SortOption) => {
+        if (newSort === sortBy) return;
+
+        setSortBy(newSort);
+        setSortLoading(true);
+
+        try {
+            // Re-fetch from page 0 with new sort order
+            const freshPhotos = await getPhotos(albumId, 0, 20, newSort);
+            setPhotos(freshPhotos);
+            setPage(1);
+            setHasMore(freshPhotos.length === 20);
+        } catch (error) {
+            console.error("Failed to sort photos:", error);
+        } finally {
+            setSortLoading(false);
+        }
+    };
+
     return (
-        <div className="space-y-8">
-            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+        <div className="space-y-6">
+            {/* Sort Controls */}
+            <div className="flex justify-end">
+                <SortControl currentSort={sortBy} onSortChange={handleSortChange} />
+            </div>
+
+            {/* Photo Grid */}
+            <div className={`columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 transition-opacity duration-300 ${sortLoading ? "opacity-40" : "opacity-100"}`}>
                 {photos.map((photo) => (
                     <PhotoCard
                         key={photo.id}
