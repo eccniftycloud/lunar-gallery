@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PhotoCard from "./PhotoCard";
 import SortControl from "./SortControl";
+import { GallerySkeletonGrid } from "./Skeletons";
 import { getPhotos } from "@/app/lib/actions";
 import type { SortOption } from "@/app/lib/actions";
 import { Loader2 } from "lucide-react";
@@ -86,7 +87,10 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
             </div>
 
             {/* Photo Grid */}
-            <div className={`columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 transition-opacity duration-300 ${sortLoading ? "opacity-40" : "opacity-100"}`}>
+            {sortLoading ? (
+                <GallerySkeletonGrid count={photos.length || 4} />
+            ) : (
+            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
                 {photos.map((photo) => (
                     <PhotoCard
                         key={photo.id}
@@ -102,6 +106,7 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
                     />
                 ))}
             </div>
+            )}
 
             {hasMore && (
                 <div className="flex justify-center pt-8 pb-12">
