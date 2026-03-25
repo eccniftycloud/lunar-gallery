@@ -9,12 +9,14 @@ import { AuthError } from 'next-auth'
 import { redirect } from 'next/navigation'
 import sharp from 'sharp'
 import bcrypt from 'bcryptjs'
+import { uploadLimiter, loginLimiter } from './rate-limit'
 
 export async function authenticate(
     prevState: string | undefined,
     formData: FormData,
 ) {
     try {
+        loginLimiter.check('admin');
         await signIn('credentials', formData)
         // If signIn does not throw a redirect error, we manually redirect
         redirect('/')
@@ -143,6 +145,8 @@ export async function getAlbums() {
 export async function uploadPhoto(formData: FormData) {
     const session = await auth();
     if (!session) throw new Error('Unauthorized');
+
+    uploadLimiter.check('admin');
 
     const file = formData.get('file') as File
     const albumId = formData.get('albumId') as string

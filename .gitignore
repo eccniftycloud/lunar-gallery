@@ -51,6 +51,9 @@ prisma/dev.db-journal
 public/uploads/*
 !public/uploads/.gitkeep
 
+# Backups (local only, never commit)
+backups/
+
 # Internal project docs (not for public repo)
 AI_ARCHITECTURE.md
 IMPLEMENTATION_PLAN.md
