@@ -17,8 +17,12 @@ export async function authenticate(
 ) {
     try {
         loginLimiter.check('admin');
+    } catch {
+        return 'Too many login attempts. Please wait 60 seconds.';
+    }
+
+    try {
         await signIn('credentials', formData)
-        // If signIn does not throw a redirect error, we manually redirect
         redirect('/')
     } catch (error) {
         if (error instanceof AuthError) {
