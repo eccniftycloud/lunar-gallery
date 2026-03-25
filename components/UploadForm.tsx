@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { uploadPhoto } from "@/app/lib/actions";
-import { UploadCloud, Check, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import { UploadCloud } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useToast } from "./ui/ToastProvider";
 
 interface Album {
     id: string;
@@ -18,29 +18,26 @@ interface UploadFormProps {
 
 export default function UploadForm({ albums, initialAlbumId }: UploadFormProps) {
     const router = useRouter();
+    const { addToast } = useToast();
     const [file, setFile] = useState<File | null>(null);
     const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!file) return;
 
         setLoading(true);
-        setStatus("idle");
 
         const formData = new FormData(e.currentTarget);
         try {
             await uploadPhoto(formData);
-            setStatus("success");
+            addToast("Photo uploaded successfully!", "success");
             setFile(null);
             (e.target as HTMLFormElement).reset();
             router.refresh();
-            // Reset status after a delay
-            setTimeout(() => setStatus("idle"), 3000);
         } catch (error) {
             console.error(error);
-            setStatus("error");
+            addToast("Upload failed. Please try again.", "error");
         } finally {
             setLoading(false);
         }
@@ -109,28 +106,6 @@ export default function UploadForm({ albums, initialAlbumId }: UploadFormProps) 
             >
                 {loading ? "Uploading..." : "Upload Photo"}
             </button>
-
-            {status === "success" && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 text-green-400 justify-center"
-                >
-                    <Check className="w-5 h-5" />
-                    <span>Upload successful!</span>
-                </motion.div>
-            )}
-
-            {status === "error" && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-2 text-red-400 justify-center"
-                >
-                    <AlertCircle className="w-5 h-5" />
-                    <span>Upload failed. Please try again.</span>
-                </motion.div>
-            )}
         </form>
     );
 }

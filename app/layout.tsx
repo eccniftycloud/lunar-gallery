@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import GlassCanvas from "@/components/ui/GlassCanvas";
+import { ToastProvider } from "@/components/ui/ToastProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,6 +28,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className={`${inter.className} antialiased`}
       >
+        <ToastProvider>
         <div className="flex min-h-screen">
           <Sidebar session={session} siteTitle={adminConfig?.siteTitle || "Lunar Gallery"} />
           <main className="flex-1 lg:ml-64 p-4 pt-16 lg:pt-8 lg:p-8 relative z-10">
@@ -34,6 +36,7 @@ export default async function RootLayout({
           </main>
           <GlassCanvas />
         </div>
+        </ToastProvider>
       </body>
     </html>
   );

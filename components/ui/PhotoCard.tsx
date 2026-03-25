@@ -6,6 +6,7 @@ import { Trash2, Pencil, X, Check, FolderInput } from "lucide-react";
 import { deletePhoto, updatePhoto, movePhoto } from "@/app/lib/actions";
 import { useRouter } from "next/navigation";
 import PhotoLightbox from "./PhotoLightbox";
+import { useToast } from "./ToastProvider";
 import Image from "next/image";
 
 interface Album {
@@ -27,6 +28,7 @@ interface PhotoCardProps {
 
 export default function PhotoCard({ id, url, title, description, width, height, albumId, isAdmin, albums }: PhotoCardProps) {
     const router = useRouter();
+    const { addToast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
@@ -40,9 +42,11 @@ export default function PhotoCard({ id, url, title, description, width, height, 
         setIsDeleting(true);
         try {
             await deletePhoto(id);
+            addToast(`"${title || 'Photo'}" deleted`, "success");
             router.refresh();
         } catch (err) {
             console.error("Delete failed:", err);
+            addToast("Failed to delete photo", "error");
             setIsDeleting(false);
             setShowConfirm(false);
         }
@@ -55,9 +59,11 @@ export default function PhotoCard({ id, url, title, description, width, height, 
                 description: editDescription || undefined,
             });
             setIsEditing(false);
+            addToast(`"${editTitle || 'Photo'}" updated`, "success");
             router.refresh();
         } catch (err) {
             console.error("Update failed:", err);
+            addToast("Failed to update photo", "error");
         }
     };
 
@@ -65,10 +71,15 @@ export default function PhotoCard({ id, url, title, description, width, height, 
         setIsMoving(true);
         try {
             await movePhoto(id, targetAlbumId);
+            const targetName = targetAlbumId
+                ? albums?.find(a => a.id === targetAlbumId)?.name || "album"
+                : "Uncategorized";
+            addToast(`Moved to "${targetName}"`, "info");
             setShowMove(false);
             router.refresh();
         } catch (err) {
             console.error("Move failed:", err);
+            addToast("Failed to move photo", "error");
         } finally {
             setIsMoving(false);
         }
