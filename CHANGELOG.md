@@ -6,8 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased / Next Feature]
-- (WIP) Auto-Ingest Pipeline & Search features on `feature/auto-ingest` branch.
-- **Added:** Real-time search feature using case-insensitive SQLite queries and a glassmorphism UI overlay.
+- **Search:** Real-time search feature using case-insensitive SQLite queries and a glassmorphism UI overlay.
+- **Backfill Script:** Idempotent script (`scripts/backfill-dimensions.ts`) to populate missing width/height for old photos using sharp.
+- **Sorting:** Dynamic gallery sorting (Newest, Oldest, A→Z) with smooth layout transitions.
+- **Loading Skeletons:** Animated nebula-purple shimmer placeholders (`skeleton-shimmer`) for sort transitions and slow connections.
+- **Toast Notifications:** Centralized `ToastProvider` with spring animations for success (green), error (red), and info (purple) feedback.
+- **Backup Script:** Added local SQLite and uploads backup script (`scripts/backup.sh`) with `--restore` capability and auto-cleanup.
+- **Rate Limiting:** Zero-dependency in-memory rate limiter protecting upload (10/5min) and login (5/min) endpoints.
 
 ## [1.0.1] - 2026-02-24
 ### Fixed
