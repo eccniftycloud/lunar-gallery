@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Toast Notifications:** Centralized `ToastProvider` with spring animations for success (green), error (red), and info (purple) feedback.
 - **Backup Script:** Added local SQLite and uploads backup script (`scripts/backup.sh`) with `--restore` capability and auto-cleanup.
 - **Rate Limiting:** Zero-dependency in-memory rate limiter protecting upload (10/5min) and login (5/min) endpoints.
+- **Auto-Ingest API:** New `/api/ingest` endpoint protected by `INGEST_API_KEY` that automatically resizes and maps uploads directly to the database.
+- **AI "Brain" Adapter:** Integrated `Ollama/LLaVA` directly into the ingest pipeline to automatically generate beautiful Titles, Descriptions, and dynamically assign Albums without user input.
+- **Google Drive Bridge:** Created `scripts/sync-drive.sh` utilizing `rclone copy` to automatically pull astrophotography straight from the user's tablet cloud sync to the local server.
+- **Async File Watcher:** Built an invisible, node-based file watcher (`scripts/file-watcher.ts`) leveraging `chokidar` with a custom asynchronous queue, ensuring large sync batches are processed flawlessly and sequentially by the local AI model.
 
 ## [1.0.1] - 2026-02-24
 ### Fixed
