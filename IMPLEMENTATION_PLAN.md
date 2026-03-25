@@ -81,3 +81,10 @@
 - [ ] **8b — High-Resolution Storage**: Modify the `sharp` ingestion pipeline. Create two versions of uploaded images: a `1080p` thumbnail for the gallery grid, and store the *original high-res* version for the full screen Lightbox view.
 - [ ] **8c — EXIF/FITS Metadata Parsing**: Astrophotography files often contain built-in metadata (coordinates, target name). Parse this EXIF data using an npm package before sending it to LLaVA.
 - [ ] **8d — Improved AI Prompting**: Feed the parsed EXIF metadata into the Ollama prompt to guarantee 100% accurate categorization (e.g., "Nebula", "Galaxy", "Solar System") instead of solely relying on vision inference.
+
+## ☁️ Phase 9: Advanced Cloud Architecture (AWS Bedrock)
+> *Goal: Transition the AI brain from a local LLaVA dependency to enterprise-grade AWS Bedrock models for increased accuracy, speed, and production deployment portability.*
+
+- [ ] **9a — AWS Configuration**: Set up IAM roles, permissions, and `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` safely in the `.env` file.
+- [ ] **9b — Bedrock Adapter**: Rewrite the `/api/ingest` endpoint to utilize the `@aws-sdk/client-bedrock-runtime`. Determine the best multimodal model (e.g. Claude 3 Haiku/Sonnet or Titan Vision).
+- [ ] **9c — Hybrid Toggle**: Implement a configuration toggle in the admin dashboard (or `.env`) allowing the user to seamlessly switch between "Local Mode" (Ollama) and "Cloud Mode" (Bedrock) depending on where the gallery is currently hosted.
