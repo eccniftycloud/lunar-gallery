@@ -174,15 +174,18 @@ export async function uploadPhoto(formData: FormData) {
     const thumbFilepath = join(uploadDir, thumbFilename)
     const highResFilepath = join(uploadDir, highResFilename)
 
-    const width = 1080
-    const height = 1080
+    const metadata = await sharp(buffer).metadata()
+    const originalWidth = metadata.width || 1080
+    const originalHeight = metadata.height || 1080
+    const thumbWidth = Math.min(originalWidth, 1080)
+    const thumbHeight = Math.round((originalHeight / originalWidth) * thumbWidth)
 
     // A) Preserve Untouched FITS/Telescope original resolution
     await writeFile(highResFilepath, buffer)
 
     // B) Downscale a thumbnail for web galleries
     const resizedBuffer = await sharp(buffer)
-        .resize(width, height, { fit: 'cover', withoutEnlargement: true })
+        .resize(thumbWidth, thumbHeight, { fit: 'contain', withoutEnlargement: true })
         .toBuffer()
 
     await writeFile(thumbFilepath, resizedBuffer)
@@ -197,8 +200,8 @@ export async function uploadPhoto(formData: FormData) {
             title: title || file.name,
             description: description || null,
             albumId: albumId || null,
-            width: width || null,
-            height: height || null,
+            width: thumbWidth,
+            height: thumbHeight,
         },
     })
 

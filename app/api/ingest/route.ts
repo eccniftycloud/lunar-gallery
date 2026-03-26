@@ -32,6 +32,15 @@ export async function POST(req: NextRequest) {
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
+        // Extract absolute true telescope dimensions for aesthetic masonry scaling grid
+        const metadata = await sharp(buffer).metadata();
+        const originalWidth = metadata.width || 1080;
+        const originalHeight = metadata.height || 1080;
+        
+        // Calculate true aspect ratio bounded by 1080px max width for web aesthetics
+        const thumbWidth = Math.min(originalWidth, 1080);
+        const thumbHeight = Math.round((originalHeight / originalWidth) * thumbWidth);
+
         // Ensure directory exists
         const uploadDir = join(process.cwd(), "public/uploads");
         await mkdir(uploadDir, { recursive: true });
@@ -48,9 +57,9 @@ export async function POST(req: NextRequest) {
         // A) Save untouched original High-Res Buffer
         await writeFile(highResFilepath, buffer);
 
-        // B) Generate 1080x1080 thumbnail for grids
+        // B) Generate proportional thumbnail for masonry grids (NO CROPPING)
         const thumbBuffer = await sharp(buffer)
-            .resize(1080, 1080, { fit: "cover", withoutEnlargement: true })
+            .resize(thumbWidth, thumbHeight, { fit: "contain", withoutEnlargement: true })
             .toBuffer();
         await writeFile(thumbFilepath, thumbBuffer);
 
@@ -86,14 +95,14 @@ export async function POST(req: NextRequest) {
                 console.log("[Ingest API] No readable EXIF data found");
             }
 
-            // Phase 8d: Improved Prompting
+            // Phase 8d & 8g: Precision AI Prompt Architecture Tuning
             const aiPrompt = `Analyze this astrophotography or celestial image.${exifContext}
             
 Return ONLY a valid JSON object matching this exact shape, nothing else:
 {
-  "title": "A short, beautiful 2-4 word title for the image",
-  "description": "A 1-2 sentence description of what is visible in the image",
-  "albumName": "Choose ONE: 'Solar System', 'Deep Space', 'Lunar', or 'Terrestrial'"
+  "title": "A highly precise, aesthetic 2-5 word title (e.g. 'Andromeda Galaxy', 'Orion Nebula', 'Full Moon')",
+  "description": "A 1-2 sentence description explaining exactly what is visible astronomically.",
+  "albumName": "Choose ONE highly specific category: 'Galaxies', 'Nebulae', 'Star Clusters', 'The Moon', 'Planetary', 'Constellations', or 'Deep Space'"
 }`;
 
             // Make request with a strict 30 second timeout for the AI
@@ -153,8 +162,8 @@ Return ONLY a valid JSON object matching this exact shape, nothing else:
             data: {
                 url,
                 highResUrl,
-                width: 1080,
-                height: 1080,
+                width: thumbWidth,
+                height: thumbHeight,
                 title,
                 description,
                 albumId
@@ -170,10 +179,10 @@ Return ONLY a valid JSON object matching this exact shape, nothing else:
             message: "File stored securely.",
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("[Ingest API] Error processing file:", error);
         return NextResponse.json(
-            { error: "Internal server error during ingestion" },
+            { error: "Internal server error during ingestion", details: error.message, stack: error.stack },
             { status: 500 }
         );
     }
