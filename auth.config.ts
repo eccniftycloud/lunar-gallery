@@ -7,7 +7,7 @@ export const authConfig = {
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user;
-            const isOnUpload = nextUrl.pathname.startsWith('/upload');
+            const isOnUpload = nextUrl.pathname === '/upload';
 
             if (isOnUpload) {
                 if (isLoggedIn) return true;
