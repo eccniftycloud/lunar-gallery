@@ -94,7 +94,7 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                         animate={{ scale: 1, y: 0, opacity: 1 }}
                         exit={{ scale: 0.85, y: 20, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 280, damping: 24 }}
-                        className="relative z-10 flex flex-col max-w-[92vw] max-h-[90vh] sm:max-w-[80vw] lg:max-w-[65vw] xl:max-w-[55vw]"
+                        className="relative z-10 flex flex-col w-[95vw] max-w-7xl max-h-[95vh] lg:w-[90vw]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close button */}
@@ -110,7 +110,7 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                         </motion.button>
 
                         {/* Glowing border frame */}
-                        <div className="relative rounded-2xl overflow-hidden" style={{ boxShadow: "0 0 60px rgba(139,92,246,0.3), 0 0 120px rgba(139,92,246,0.1), 0 4px 30px rgba(0,0,0,0.5)" }}>
+                        <div className="relative rounded-2xl flex flex-col overflow-hidden" style={{ boxShadow: "0 0 60px rgba(139,92,246,0.3), 0 0 120px rgba(139,92,246,0.1), 0 4px 30px rgba(0,0,0,0.5)" }}>
                             {/* Animated gradient border */}
                             <motion.div
                                 animate={{
@@ -124,12 +124,12 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                                 }}
                             />
 
-                            <div className="relative rounded-2xl overflow-hidden bg-gray-950 m-[2px]">
+                            <div className="relative rounded-2xl overflow-hidden flex flex-col bg-gray-950 m-[2px]">
                                 {/* Image with zoom-in effect */}
                                 <motion.img
                                     src={url}
                                     alt={title || "Astronomy Photo"}
-                                    className="max-h-[60vh] w-full object-contain bg-black"
+                                    className="max-h-[75vh] min-h-[40vh] w-full object-contain bg-black"
                                     initial={{ opacity: 0, scale: 1.05 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
