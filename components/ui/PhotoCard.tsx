@@ -17,6 +17,7 @@ interface Album {
 interface PhotoCardProps {
     id: string;
     url: string;
+    highResUrl?: string;
     title?: string;
     description?: string;
     width?: number;
@@ -26,7 +27,7 @@ interface PhotoCardProps {
     albums?: Album[];
 }
 
-export default function PhotoCard({ id, url, title, description, width, height, albumId, isAdmin, albums }: PhotoCardProps) {
+export default function PhotoCard({ id, url, highResUrl, title, description, width, height, albumId, isAdmin, albums }: PhotoCardProps) {
     const router = useRouter();
     const { addToast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
@@ -281,7 +282,7 @@ export default function PhotoCard({ id, url, title, description, width, height, 
             <PhotoLightbox
                 isOpen={lightboxOpen}
                 onClose={() => setLightboxOpen(false)}
-                url={url}
+                url={highResUrl || url}
                 title={title}
                 description={description}
             />

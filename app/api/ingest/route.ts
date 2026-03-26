@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
         console.log(`[Ingest API] Received file: ${file.name} (${file.size} bytes)`);
 
-        // 3. Process the Image with Sharp
+        // 3. Create Dual-File System (1080p Thumbnail + Ultra High Res Original)
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
@@ -36,16 +36,26 @@ export async function POST(req: NextRequest) {
         const uploadDir = join(process.cwd(), "public/uploads");
         await mkdir(uploadDir, { recursive: true });
 
-        const filename = `${Date.now()}-${file.name.replace(/\s/g, "-")}`;
-        const filepath = join(uploadDir, filename);
+        const safeFilename = file.name.replace(/\s/g, "-");
+        const timestamp = Date.now();
+        const thumbFilename = `${timestamp}-thumb-${safeFilename}`;
+        const highResFilename = `${timestamp}-highres-${safeFilename}`;
 
-        // Resize to a standard 1080x1080 optimized square for the frontend
-        const resizedBuffer = await sharp(buffer)
-            .resize(1080, 1080, { fit: "cover" })
+        // Path definitions
+        const thumbFilepath = join(uploadDir, thumbFilename);
+        const highResFilepath = join(uploadDir, highResFilename);
+
+        // A) Save untouched original High-Res Buffer
+        await writeFile(highResFilepath, buffer);
+
+        // B) Generate 1080x1080 thumbnail for grids
+        const thumbBuffer = await sharp(buffer)
+            .resize(1080, 1080, { fit: "cover", withoutEnlargement: true })
             .toBuffer();
+        await writeFile(thumbFilepath, thumbBuffer);
 
-        await writeFile(filepath, resizedBuffer);
-        const url = `/uploads/${filename}`;
+        const url = `/uploads/${thumbFilename}`;
+        const highResUrl = `/uploads/${highResFilename}`;
 
         // 4. Send to Local Ollama (LLaVA) for AI Analysis
         let title = "Auto Upload";
@@ -118,6 +128,7 @@ export async function POST(req: NextRequest) {
         const photo = await prisma.photo.create({
             data: {
                 url,
+                highResUrl,
                 width: 1080,
                 height: 1080,
                 title,

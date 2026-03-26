@@ -78,7 +78,7 @@
 > *Goal: Fix viewing issues, preserve telescope metadata for accurate AI categorization, and implement high-res viewing.*
 
 - [x] **8a — Lightbox Bug Fix**: Fixed the bug where some images couldn't be viewed fully. The lightbox now scales correctly up to 95vw safely using CSS Flex boundaries.
-- [ ] **8b — High-Resolution Storage**: Modify the `sharp` ingestion pipeline. Create two versions of uploaded images: a `1080p` thumbnail for the gallery grid, and store the *original high-res* version for the full screen Lightbox view.
+- [x] **8b — High-Resolution Storage**: Modified the `.prisma` schema and the `sharp` ingestion pipeline. Create two versions of uploaded images: a `1080p` thumbnail for the gallery grid, and store the *original high-res* version natively which is selectively fetched when expanding the Lightbox view.
 - [ ] **8c — EXIF/FITS Metadata Parsing**: Astrophotography files often contain built-in metadata (coordinates, target name). Parse this EXIF data using an npm package before sending it to LLaVA.
 - [ ] **8d — Improved AI Prompting**: Feed the parsed EXIF metadata into the Ollama prompt to guarantee 100% accurate categorization (e.g., "Nebula", "Galaxy", "Solar System") instead of solely relying on vision inference.
 

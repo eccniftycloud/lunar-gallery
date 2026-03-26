@@ -98,6 +98,8 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
                         title={photo.title || undefined}
                         description={photo.description || undefined}
                         url={photo.url}
+                        // @ts-ignore - Temporary until prisma client re-syncs
+                        highResUrl={photo.highResUrl || undefined}
                         width={photo.width || undefined}
                         height={photo.height || undefined}
                         albumId={photo.albumId}

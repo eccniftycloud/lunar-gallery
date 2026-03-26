@@ -166,22 +166,34 @@ export async function uploadPhoto(formData: FormData) {
     const uploadDir = join(process.cwd(), 'public/uploads')
     await mkdir(uploadDir, { recursive: true })
 
-    const filename = `${Date.now()}-${file.name.replace(/\s/g, '-')}`
-    const filepath = join(uploadDir, filename)
+    const safeFilename = file.name.replace(/\s/g, '-')
+    const timestamp = Date.now()
+    const thumbFilename = `${timestamp}-thumb-${safeFilename}`
+    const highResFilename = `${timestamp}-highres-${safeFilename}`
 
-    const resizedBuffer = await sharp(buffer)
-        .resize(1080, 1080, { fit: 'cover' })
-        .toBuffer()
+    const thumbFilepath = join(uploadDir, thumbFilename)
+    const highResFilepath = join(uploadDir, highResFilename)
 
     const width = 1080
     const height = 1080
 
-    await writeFile(filepath, resizedBuffer)
-    const url = `/uploads/${filename}`
+    // A) Preserve Untouched FITS/Telescope original resolution
+    await writeFile(highResFilepath, buffer)
+
+    // B) Downscale a thumbnail for web galleries
+    const resizedBuffer = await sharp(buffer)
+        .resize(width, height, { fit: 'cover', withoutEnlargement: true })
+        .toBuffer()
+
+    await writeFile(thumbFilepath, resizedBuffer)
+
+    const url = `/uploads/${thumbFilename}`
+    const highResUrl = `/uploads/${highResFilename}`
 
     await prisma.photo.create({
         data: {
             url,
+            highResUrl,
             title: title || file.name,
             description: description || null,
             albumId: albumId || null,

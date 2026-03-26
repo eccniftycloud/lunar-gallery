@@ -23,6 +23,7 @@ model Album {
 model Photo {
   id          String   @id @default(cuid())
   url         String
+  highResUrl  String?
   title       String?
   description String?
   width       Int?
