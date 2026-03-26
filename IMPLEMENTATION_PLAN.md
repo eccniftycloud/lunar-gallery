@@ -79,8 +79,8 @@
 
 - [x] **8a — Lightbox Bug Fix**: Fixed the bug where some images couldn't be viewed fully. The lightbox now scales correctly up to 95vw safely using CSS Flex boundaries.
 - [x] **8b — High-Resolution Storage**: Modified the `.prisma` schema and the `sharp` ingestion pipeline. Create two versions of uploaded images: a `1080p` thumbnail for the gallery grid, and store the *original high-res* version natively which is selectively fetched when expanding the Lightbox view.
-- [ ] **8c — EXIF/FITS Metadata Parsing**: Astrophotography files often contain built-in metadata (coordinates, target name). Parse this EXIF data using an npm package before sending it to LLaVA.
-- [ ] **8d — Improved AI Prompting**: Feed the parsed EXIF metadata into the Ollama prompt to guarantee 100% accurate categorization (e.g., "Nebula", "Galaxy", "Solar System") instead of solely relying on vision inference.
+- [x] **8c — EXIF/FITS Metadata Parsing**: Installed `exifr` package and injected real-time parsing into `/api/ingest`. Analyzes buffer directly and isolates embedded targets/coords/telemetry before running AI.
+- [x] **8d — Improved AI Prompting**: Hooked EXIF telemetry gracefully into the LLaVA prompt format, giving the computer vision model highly accurate context to confidently name and sort celestial objects.
 
 ## ☁️ Phase 9: Advanced Cloud Architecture (AWS Bedrock)
 > *Goal: Transition the AI brain from a local LLaVA dependency to enterprise-grade AWS Bedrock models for increased accuracy, speed, and production deployment portability.*

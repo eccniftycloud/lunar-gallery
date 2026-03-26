@@ -3,7 +3,7 @@ import { join } from "path";
 import { writeFile, mkdir } from "fs/promises";
 import prisma from "@/app/lib/prisma";
 import sharp from "sharp";
-
+import exifr from "exifr";
 // Allow scaling up payload size if astrophotography images are large
 export const maxDuration = 60; // 60 seconds
 
@@ -65,7 +65,31 @@ export async function POST(req: NextRequest) {
         try {
             console.log("[Ingest API] Sending image to local Ollama (LLaVA) for analysis...");
             const base64Image = buffer.toString("base64");
-            const aiPrompt = `Analyze this astrophotography or celestial image. Return ONLY a valid JSON object matching this exact shape, nothing else:
+            
+            // Phase 8c: Parse EXIF data from astronomical fits/jpegs
+            let exifContext = "";
+            try {
+                // we use the original buffer, extract anything remotely looking like text/metadata
+                const parsedExif = await exifr.parse(buffer, { gps: false });
+                if (parsedExif) {
+                    const keysToKeep = ["Make", "Model", "Software", "DateTimeOriginal", "UserComment", "ImageDescription", "Subject", "Title"];
+                    const relevantData = Object.entries(parsedExif).filter(([key, value]) => {
+                        return keysToKeep.includes(key) || (typeof value === "string" && value.length > 2);
+                    }).slice(0, 8); // Keep it strictly brief so LLaVA doesn't get overwhelmed
+
+                    if (relevantData.length > 0) {
+                        const metadataPayload = Object.fromEntries(relevantData);
+                        exifContext = `\n\nCRITICAL CONTEXT FROM EMBEDDED TELESCOPE METADATA:\n${JSON.stringify(metadataPayload, null, 2)}\n\nUse this exact metadata to confidently identify the celestial object, correct its name, and determine its album category.`;
+                    }
+                }
+            } catch (exifErr) {
+                console.log("[Ingest API] No readable EXIF data found");
+            }
+
+            // Phase 8d: Improved Prompting
+            const aiPrompt = `Analyze this astrophotography or celestial image.${exifContext}
+            
+Return ONLY a valid JSON object matching this exact shape, nothing else:
 {
   "title": "A short, beautiful 2-4 word title for the image",
   "description": "A 1-2 sentence description of what is visible in the image",
