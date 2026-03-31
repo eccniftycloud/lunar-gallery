@@ -51,6 +51,7 @@
 - [x] **8.9b — Pipeline Rotation Toggle**: Add an optional rotation step in `/api/ingest/route.ts` that detects Seestar S50 portrait images (1080×1920 with "Seestar" in EXIF Make) and rotates them 90° clockwise to 1920×1080 landscape before generating the 3-tier files. Controlled by an env var `ROTATE_SEESTAR=true`.
 - [x] **8.9c — Backfill Rotation Script**: Create `scripts/backfill-rotate.ts` to retroactively rotate existing 1080×1920 Seestar photos to landscape and regenerate all 3 tiers.
 - [x] **8.9d — Visual Verification**: Verify rotated images display correctly in both lightbox and masonry grid — telemetry overlay text (Seestar S50, coordinates, target) should read naturally in landscape.
+- [x] **8.9e — Hybrid Orientation Logic**: Implemented client-side viewport detection in `PhotoCard.tsx` and `PhotoLightbox.tsx`. On mobile viewports (< 768px), the gallery now serves the original portrait orientation (highResUrl) and swaps width/height accordingly. On desktop, it serves the optimal landscape rotation. This gives the user the best of both worlds: cinematic landscape on desktop and vertical native portrait on cell phones.
 
 ## ☁️ Phase 9: Advanced Cloud Architecture (AWS Bedrock)
 > *Goal: Transition the AI brain from a local LLaVA dependency to enterprise-grade AWS Bedrock models for increased accuracy, speed, and production deployment portability.*

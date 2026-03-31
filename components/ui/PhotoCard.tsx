@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, Pencil, X, Check, FolderInput } from "lucide-react";
 import { deletePhoto, updatePhoto, movePhoto } from "@/app/lib/actions";
 import { useRouter } from "next/navigation";
@@ -39,6 +39,24 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
     const [editTitle, setEditTitle] = useState(title || "");
     const [editDescription, setEditDescription] = useState(description || "");
     const [lightboxOpen, setLightboxOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Dynamic Orientation Check: Desktop = Landscape, Mobile = Portrait
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const checkMobile = () => setIsMobile(window.innerWidth < 768);
+            checkMobile();
+            window.addEventListener('resize', checkMobile);
+            return () => window.removeEventListener('resize', checkMobile);
+        }
+    }, []);
+
+    // If on mobile and a portrait original exists, we prefer it for vertical viewing
+    // Width and height from the database are the ROTATED ones (landscape), 
+    // so we swap them back if we are using the portrait original.
+    const effectiveUrl = (isMobile && highResUrl) ? highResUrl : url;
+    const effectiveWidth = (isMobile && highResUrl && width && height && width > height) ? height : width;
+    const effectiveHeight = (isMobile && highResUrl && width && height && width > height) ? width : height;
 
     const handleDelete = async () => {
         setIsDeleting(true);
@@ -94,12 +112,12 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
             layoutId={`photo-${id}`}
             className="relative flex flex-col break-inside-avoid mb-4 group rounded-xl overflow-hidden glass-panel"
         >
-            {width && height ? (
+            {effectiveWidth && effectiveHeight ? (
                 <Image
-                    src={url}
+                    src={effectiveUrl}
                     alt={title || "Astronomy Photo"}
-                    width={width}
-                    height={height}
+                    width={effectiveWidth}
+                    height={effectiveHeight}
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     style={{ width: '100%', height: 'auto' }}
                     className="object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer block"
@@ -107,7 +125,7 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
                 />
             ) : (
                 <img
-                    src={url}
+                    src={effectiveUrl}
                     alt={title || "Astronomy Photo"}
                     style={{ width: '100%', height: 'auto' }}
                     className="object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer block"
@@ -286,11 +304,11 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
             <PhotoLightbox
                 isOpen={lightboxOpen}
                 onClose={() => setLightboxOpen(false)}
-                url={displayUrl || highResUrl || url}
+                url={(isMobile && highResUrl) ? highResUrl : (displayUrl || highResUrl || url)}
                 title={title}
                 description={description}
-                nativeWidth={width}
-                nativeHeight={height}
+                nativeWidth={effectiveWidth}
+                nativeHeight={effectiveHeight}
             />
         </motion.div>
     );

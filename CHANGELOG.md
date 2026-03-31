@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lightbox Info Pane Overflow (Phase 8.8a):** Long description text was stretching the glowing border frame wider than the image on desktop viewports, creating a dark gap on the right side of portrait photos. Fixed by using `inline-flex` container + `w-0 min-w-full` on the info pane so the image dictates width and text wraps within it.
 - **Lightbox Desktop Audit (Phase 8.8b):** Verified all 32 photos across 4 album categories — zero dark gaps on any side.
 - **Description Card Overflow (Phase 8.9a):** Tightened `line-clamp` from 3 to 2 lines on PhotoCard descriptions to prevent long AI-generated text from overflowing masonry card margins. Full descriptions remain visible in lightbox.
+- **Seestar Landscape Rotation (Phase 8.9b/c):** Added server-side Sharp pipeline to detect Seestar S50 portrait captures and automatically rotate them 90° to landscape 16:9 for a cinematic desktop experience. Accompanied by `scripts/backfill-rotate.ts` which updated all 32 existing assets.
+- **Hybrid Orientation Logic (Phase 8.9e):** Intelligent client-side viewport routing. Desktop/Tablets receive the rotated landscape tier, while cell phones (< 768px) automatically revert to the original vertical portrait orientation. This ensures the best viewing experience for both monitor aspect ratios and narrow phone screens.
 
 ## [1.0.1] - 2026-02-24
 ### Fixed
