@@ -1,89 +1,56 @@
-# Lunar Gallery Implementation Plan & Checklist
+# Lunar Gallery Active Implementation Plan
 
-## ✅ Phase 1: Core Setup & Infrastructure
-- [x] **Project Initialization**: Next.js App Router, TypeScript, Tailwind CSS.
-- [x] **Database Setup**: SQLite with Prisma ORM (`User`, `Account`, `Session`, `Photo`, `Album` models).
-- [x] **Authentication**: NextAuth.js (Auth.js) with Discord Provider.
-- [x] **UI Framework**: Glassmorphism design system (`globals.css`), Framer Motion integration.
-- [x] **Layout**: Responsive layout with sidebar navigation (`Sidebar.tsx`) and animated background (`GlassCanvas.tsx`).
+> **Note:** For completed modules (Phase 1 through 8), please refer to `CHANGELOG.md`. This document strictly tracks active and future developmental horizons.
 
-## ✅ Phase 2: Photo Management
-- [x] **Upload Feature**:
-    - [x] Drag-and-drop upload form (`UploadForm.tsx`).
-    - [x] Server Actions for handling file uploads (`uploadPhoto`).
-    - [x] Album selection dropdown.
-    - [x] Metadata support (Title, Description).
-- [x] **Gallery Display**:
-    - [x] Masonry grid layout for photos.
-    - [x] Responsive columns (1-4 columns based on screen width).
-    - [x] Loading states and empty states.
-- [x] **Admin Actions**:
-    - [x] Edit photo details (Title, Description) with inline form overlay.
-    - [x] Delete photo functionality with confirmation modal.
-    - [x] Persistent action bar for admins (Edit/Delete buttons).
-    - [x] Server-side validation and revalidation.
 
-## ✅ Phase 3: Album Features
-- [x] **Album Management**:
-    - [x] Create new albums.
-    - [x] Assign photos to albums.
-    - [x] Cover image support (auto-selected from first photo).
-- [x] **Views**:
-    - [x] Album listing page (`/albums`).
-    - [x] Individual album detail page (`/albums/[id]`).
-    - [x] Filtered photo grid for specific albums.
 
-## ✅ Phase 4: UX & Polish
-- [x] **Mobile Responsiveness**:
-    - [x] Collapsible sidebar with hamburger menu for mobile/tablet.
-    - [x] Optimized grid layouts for smaller screens.
-    - [x] Touch-friendly tap targets.
-- [x] **Immersive Viewing**:
-    - [x] **Full-Screen Lightbox**: Custom modal with React Portal.
-    - [x] **Cosmic Animations**: Spinning rings, floating particles, glowing borders.
-    - [x] **Zoom & Pan**: Smooth entry/exit animations.
-    - [x] **Expanded Info**: Full title and description displayed in the lightbox.
-- [x] **Bug Fixes**:
-    - [x] Fixed "Edit/Delete" button click handling by using Portals/z-index.
-    - [x] Resolved text visibility issues by moving info out of hover-only overlay.
-- [x] **Dynamic Site Title**: Admin-configurable site title with cosmic starlight effect.
+## 🛠️ Phase 8.5: Final Polish & Predefined Categorization (Reopened ×2)
+> *Goal: Eliminate UI blank spaces on desktop and install a locked structure of predefined astrophotography albums to perfectly guide the AI Brain.*
 
-## � Phase 5: Performance & Deployment
-- [x] **Docker Support**: `Dockerfile`, `docker-compose.yml`, `.dockerignore`, standalone build.
-- [x] **Image Optimization (Backend)**: `sharp` installed, `uploadPhoto` auto-resizes to 1080x1080 square and saves width/height to DB.
-- [x] **Image Optimization (Frontend)**: `PhotoCard` uses `next/image` when dimensions are available.
-- [x] **Pagination (Backend)**: `getPhotos()` supports `page` and `limit` parameters.
-- [x] **Pagination (UI)**: "Load More" button on gallery pages.
-- [x] **Backfill Script**: Populate width/height for existing photos.
-- [x] **Search**: Filter photos by title/description.
-- [x] **Sorting**: Sort photos by date (newest/oldest) or name (A-Z).
+- [x] **8.5a (Reopened) — Desktop Masonry Stretch**: The images under a desktop chrome browser are on their original size leaving blankspace. Ensure `Next/Image` overrides intrinsic width caps dynamically to fill the `w-full` masonry blocks without distortion.
+- [x] **8.5b — Predefined Album Seeding**: Established the 8 exact presets.
+- [x] **8.5c — Beautiful Preset Covers**: Generated covers logically.
+- [x] **8.5d — AI Prompt Lock-in**: Updated `/api/ingest/route.ts` and `AGENTS.md` perfectly.
+- [x] **8.5e — Lightbox Border-Frame Hug**: The `PhotoLightbox.tsx` glowing border frame currently uses a fixed `max-h-[75vh]` container with `object-contain`, causing massive black bars above/below (landscape) or beside (portrait) images inside the border. Refactor so the glowing border frame **tightly hugs the actual image dimensions** — no black padding inside the frame. The image should dictate the container size, not the other way around. Keep `max-h` and `max-w` viewport guards so images never overflow the screen, but the frame must shrink-wrap to the rendered image.
+- [x] **8.5f — Lightbox Desktop Aspect-Ratio Audit**: Test all 8 album categories on a desktop Chrome browser (landscape, portrait, and square source images). Verify zero visible black bars between the image edges and the glowing border on every single photo. The info pane (title + description) sits directly below the image with no gap.
+- [x] **8.5g — Mobile Regression Guard**: Confirm the lightbox still renders correctly on mobile viewports (≤768px) after the desktop refactor. No horizontal overflow, no cropping, info pane still legible.
 
-## 🔜 Phase 6: Polish & Extras (Ideas)
-- [x] **Loading Skeletons**: Animated shimmer placeholders while photos load.
-- [x] **Toast Notifications**: Success/error popups for upload, edit, delete actions.
-- [ ] **Drag-to-Reorder**: Manually sort albums.
-- [x] **Backup Script**: Automated SQLite DB + uploads backup with restore support.
-- [x] **Rate Limiting**: Protect upload and login endpoints from abuse.
+## 📷 Phase 8.7: Pro 3-Tier Image Pipeline (Fidelity Upgrade)
+> *Goal: Adopt an industry-standard multi-tier image strategy (like Google Photos, Flickr, Apple Photos) so that every photo is stored at full fidelity, displayed at the best resolution for the viewer's screen, and loads instantly in the masonry grid — future-proofed for any telescope resolution.*
 
-## 🔭 Phase 7: Auto-Ingest Pipeline (Concept)
-> *Goal: Snap a photo on your telescope app → it appears in the right album, labeled, automatically.*
+- [x] **8.7a — Prisma Schema Update**: Add a `displayUrl` field to the `Photo` model alongside the existing `url` (thumb) and `highResUrl` (original). Run `prisma db push` to migrate.
+- [x] **8.7b — 3-Tier Sharp Pipeline**: Refactor `/api/ingest/route.ts` to generate **3 files** per upload:
+  - **Original** (`highres-*`) — untouched binary, stored forever for download/zoom.
+  - **Display** (`display-*`, max **2560px** wide) — used by the lightbox. Sharp resizes with `withoutEnlargement: true` so small originals (e.g. Seestar S50 at 1080px) stay native and are never artificially upscaled.
+  - **Thumbnail** (`thumb-*`, max **600px** wide) — used by the masonry grid cards. Tiny file size (~30–50KB) for fast gallery browsing.
+- [x] **8.7c — Backfill Script**: Create `scripts/backfill-3tier.ts` to retroactively process all existing photos. Reads each photo's `highResUrl` original, generates the missing `display` and smaller `thumb` tiers, and updates the database. Idempotent — safe to run multiple times.
+- [x] **8.7d — Component Wiring**: Update `PhotoCard.tsx` to use the new `thumb` URL (600px) for the masonry grid. Update `PhotoLightbox.tsx` to load the `display` URL (2560px) instead of falling back to the thumbnail. Both use `highResUrl` only as a "View Full Resolution" option.
+- [x] **8.7e — Native Resolution Cap**: Add `max-w` and `max-h` inline styles to the lightbox `<img>` matching the image's actual pixel dimensions (from the database `width`/`height` fields). This guarantees the browser **never upscales** beyond the image's native resolution — if the display tier is 1080px wide, the lightbox frame caps at 1080px. When a future 6000px telescope image arrives, the lightbox naturally scales up to fill the screen.
+- [x] **8.7f — Grid Performance Audit**: Verify that the `/photos` and `/albums/[id]` pages load noticeably faster with the smaller 600px thumbnails. Compare before/after total page weight using Chrome DevTools Network tab.
 
-- [x] **7a — The Bucket (MCP / Folder Watcher)**: Fully implemented local watcher connecting Google Drive via `rclone` with an async queue to seamlessly ingest Astrophotography.
-- [x] **7b — The Brain (AI Architecture)**: Built API Ingest endpoint utilizing Local AI (Ollama + LLaVA) running safely with a fallback API structure.
-- [x] **7c — Auto-Filing Task**: End-to-end integration mapping "What celestial object is this?" dynamically to existing database albums or creating new categorized ones.
-- [x] **7d — The Push Workflow (API Endpoint)**: A secure `/api/ingest` endpoint protected by `INGEST_API_KEY` for manual or automated uploads.
-- [x] **7e — The Orchestrator**: Replaced Redis/BullMQ with a lightweight, built-in async queue in `file-watcher.ts` to coordinate uploads asynchronously without external dependencies.
+## 🔧 Phase 8.8: Lightbox Info Pane Width Fix (Desktop Audit)
+> *Goal: Fix the remaining lightbox layout issue where the info pane (title + description text) stretches the glowing border frame wider than the image, causing a dark gap on the right side for portrait-orientation photos on wide desktop viewports.*
 
-## 🛠️ Phase 8: Bug Fixes & High-Fidelity Enhancements
-> *Goal: Fix viewing issues, preserve telescope metadata for accurate AI categorization, and implement high-res viewing.*
+**Root Cause**: On wide desktop viewports (1400px+), the flex container's width is driven by the **longest child**. When a long description spans wider than the 1080px portrait image, the container grows to fit the text — but the image stays at 1080px, leaving an empty dark strip on the right between the image edge and the border. Verified via full visual audit of all 32 photos across all albums.
 
-- [x] **8a — Lightbox Bug Fix**: Fixed the bug where some images couldn't be viewed fully. The lightbox now scales correctly up to 95vw safely using CSS Flex boundaries.
-- [x] **8b — High-Resolution Storage**: Modified the `.prisma` schema and the `sharp` ingestion pipeline. Create two versions of uploaded images: a `1080p` thumbnail for the gallery grid, and store the *original high-res* version natively which is selectively fetched when expanding the Lightbox view.
-- [x] **8c — EXIF/FITS Metadata Parsing**: Installed `exifr` package and injected real-time parsing into `/api/ingest`. Analyzes buffer directly and isolates embedded targets/coords/telemetry before running AI.
-- [x] **8d — Improved AI Prompting**: Hooked EXIF telemetry gracefully into the LLaVA prompt format, giving the computer vision model highly accurate context to confidently name and sort celestial objects.
-- [x] **8e — Album Layout & Consistency**: Ensure dynamic Album categories generated by AI have correct `coverImage` references spanning to thumbnails, explicitly preserving user's structural workflow.
-- [x] **8f — High Fidelity Aesthetics Check**: The `PhotoCard` generated thumbnails are maintaining original aspect ratios inappropriately. Refactor Next.js `<Image>` object-fit classes so they elegantly stretch to conform uniformly without black padding or scaling issues.
-- [x] **8g — Precision AI Architecture Tuning**: Improve Ollama "rules of engagement" or migrate the "brain" prompt instructions to force the AI to respect precise categories (i.e. routing any moon telemetry accurately to "Lunar" strictly).
+**Affected photos** (confirmed via Chrome screenshots):
+- IC 434: A Magnificent Star-forming Nebula — large gap right side
+- Moonlit Jupiter — large gap right side
+- M13 Hercules Globular Cluster — large gap right side
+- Messier 108 — gap visible when viewed on wider viewports
+- Multiple other portrait photos with long descriptions
+
+- [x] **8.8a — Info Pane Width Constraint**: Refactor `PhotoLightbox.tsx` so the info pane (title + description div) width is constrained to match the **rendered image width**, not the viewport. The image must dictate the container width — the info pane should never stretch wider than the image above it.
+- [x] **8.8b — Full Desktop Audit**: Verify every photo lightbox across all 8 album categories on a 1920px+ desktop Chrome browser. Confirm zero dark gaps on any side between the image edges and the glowing border frame.
+- [ ] **8.8c — Mobile Regression Check**: Confirm the info pane still renders properly on mobile viewports (≤768px) — no text truncation, no overflow.
+
+## 🔄 Phase 8.9: Seestar Landscape Rotation & Card Polish
+> *Goal: The Seestar S50 sensor (Sony IMX462) captures at 1920×1080 (16:9 landscape) but the physical mount rotates the output to 1080×1920 (9:16 portrait). This phase adds an optional pipeline rotation to convert images to their natural landscape orientation for desktop-friendly display, and fixes card description overflow in the masonry grid.*
+
+- [x] **8.9a — Description Card Clamp**: Tighten `line-clamp` from 3 to 2 lines on PhotoCard descriptions to prevent long AI-generated text from overflowing card margins. Full text still visible in lightbox.
+- [ ] **8.9b — Pipeline Rotation Toggle**: Add an optional rotation step in `/api/ingest/route.ts` that detects Seestar S50 portrait images (1080×1920 with "Seestar" in EXIF Make) and rotates them 90° clockwise to 1920×1080 landscape before generating the 3-tier files. Controlled by an env var `ROTATE_SEESTAR=true`.
+- [ ] **8.9c — Backfill Rotation Script**: Create `scripts/backfill-rotate.ts` to retroactively rotate existing 1080×1920 Seestar photos to landscape and regenerate all 3 tiers.
+- [ ] **8.9d — Visual Verification**: Verify rotated images display correctly in both lightbox and masonry grid — telemetry overlay text (Seestar S50, coordinates, target) should read naturally in landscape.
 
 ## ☁️ Phase 9: Advanced Cloud Architecture (AWS Bedrock)
 > *Goal: Transition the AI brain from a local LLaVA dependency to enterprise-grade AWS Bedrock models for increased accuracy, speed, and production deployment portability.*

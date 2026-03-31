@@ -169,39 +169,57 @@ export async function uploadPhoto(formData: FormData) {
     const safeFilename = file.name.replace(/\s/g, '-')
     const timestamp = Date.now()
     const thumbFilename = `${timestamp}-thumb-${safeFilename}`
+    const displayFilename = `${timestamp}-display-${safeFilename}`
     const highResFilename = `${timestamp}-highres-${safeFilename}`
 
     const thumbFilepath = join(uploadDir, thumbFilename)
+    const displayFilepath = join(uploadDir, displayFilename)
     const highResFilepath = join(uploadDir, highResFilename)
 
     const metadata = await sharp(buffer).metadata()
     const originalWidth = metadata.width || 1080
     const originalHeight = metadata.height || 1080
-    const thumbWidth = Math.min(originalWidth, 1080)
-    const thumbHeight = Math.round((originalHeight / originalWidth) * thumbWidth)
+    const aspectRatio = originalHeight / originalWidth
 
-    // A) Preserve Untouched FITS/Telescope original resolution
+    // TIER 1: Thumbnail (600px max) — masonry grid cards
+    const thumbWidth = Math.min(originalWidth, 600)
+    const thumbHeight = Math.round(aspectRatio * thumbWidth)
+
+    // TIER 2: Display (2560px max) — lightbox viewing
+    const displayWidth = Math.min(originalWidth, 2560)
+    const displayHeight = Math.round(aspectRatio * displayWidth)
+
+    // A) Preserve untouched original (TIER 3)
     await writeFile(highResFilepath, buffer)
 
-    // B) Downscale a thumbnail for web galleries
-    const resizedBuffer = await sharp(buffer)
-        .resize(thumbWidth, thumbHeight, { fit: 'contain', withoutEnlargement: true })
+    // B) Display version for lightbox (TIER 2)
+    const displayBuffer = await sharp(buffer)
+        .resize(displayWidth, displayHeight, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 90 })
         .toBuffer()
+    await writeFile(displayFilepath, displayBuffer)
 
+    // C) Small thumbnail for masonry grids (TIER 1)
+    const resizedBuffer = await sharp(buffer)
+        .resize(thumbWidth, thumbHeight, { fit: 'inside', withoutEnlargement: true })
+        .jpeg({ quality: 85 })
+        .toBuffer()
     await writeFile(thumbFilepath, resizedBuffer)
 
     const url = `/uploads/${thumbFilename}`
+    const displayUrl = `/uploads/${displayFilename}`
     const highResUrl = `/uploads/${highResFilename}`
 
     await prisma.photo.create({
         data: {
             url,
+            displayUrl,
             highResUrl,
             title: title || file.name,
             description: description || null,
             albumId: albumId || null,
-            width: thumbWidth,
-            height: thumbHeight,
+            width: displayWidth,
+            height: displayHeight,
         },
     })
 
@@ -248,7 +266,7 @@ export async function searchPhotos(query: string, albumId?: string) {
 
     if (albumId) {
         return prisma.$queryRawUnsafe(
-            `SELECT id, url, title, description, width, height, albumId, createdAt
+            `SELECT id, url, displayUrl, highResUrl, title, description, width, height, albumId, createdAt
              FROM Photo
              WHERE albumId = ? AND (title LIKE ? OR description LIKE ?)
              ORDER BY createdAt DESC
@@ -258,7 +276,7 @@ export async function searchPhotos(query: string, albumId?: string) {
     }
 
     return prisma.$queryRawUnsafe(
-        `SELECT id, url, title, description, width, height, albumId, createdAt
+        `SELECT id, url, displayUrl, highResUrl, title, description, width, height, albumId, createdAt
          FROM Photo
          WHERE title LIKE ? OR description LIKE ?
          ORDER BY createdAt DESC

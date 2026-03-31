@@ -11,9 +11,11 @@ interface PhotoLightboxProps {
     url: string;
     title?: string;
     description?: string;
+    nativeWidth?: number;
+    nativeHeight?: number;
 }
 
-export default function PhotoLightbox({ isOpen, onClose, url, title, description }: PhotoLightboxProps) {
+export default function PhotoLightbox({ isOpen, onClose, url, title, description, nativeWidth, nativeHeight }: PhotoLightboxProps) {
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === "Escape") onClose();
     }, [onClose]);
@@ -94,7 +96,7 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                         animate={{ scale: 1, y: 0, opacity: 1 }}
                         exit={{ scale: 0.85, y: 20, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 280, damping: 24 }}
-                        className="relative z-10 flex flex-col w-[95vw] max-w-7xl max-h-[95vh] lg:w-[90vw]"
+                        className="relative z-10 flex flex-col max-w-[95vw] max-h-[95vh] lg:max-w-[90vw]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close button */}
@@ -124,24 +126,28 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                                 }}
                             />
 
-                            <div className="relative rounded-2xl overflow-hidden flex flex-col bg-gray-950 m-[2px]">
-                                {/* Image with zoom-in effect */}
+                            <div className="relative rounded-2xl overflow-hidden inline-flex flex-col bg-gray-950 m-[2px]">
+                                {/* Image with zoom-in effect — capped at native resolution */}
                                 <motion.img
                                     src={url}
                                     alt={title || "Astronomy Photo"}
-                                    className="max-h-[75vh] min-h-[40vh] w-full object-contain bg-black"
+                                    className="max-h-[75vh] max-w-full w-auto h-auto block"
+                                    style={{
+                                        ...(nativeWidth ? { maxWidth: `${nativeWidth}px` } : {}),
+                                        ...(nativeHeight ? { maxHeight: `min(75vh, ${nativeHeight}px)` } : {}),
+                                    }}
                                     initial={{ opacity: 0, scale: 1.05 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
                                 />
 
-                                {/* Info pane */}
+                                {/* Info pane — w-0 min-w-full prevents text from expanding container beyond image width */}
                                 {(title || description) && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: 0.25, duration: 0.4 }}
-                                        className="p-5 sm:p-6 lg:p-8 bg-gradient-to-b from-gray-900/90 to-gray-950 border-t border-white/10"
+                                        className="p-5 sm:p-6 lg:p-8 bg-gradient-to-b from-gray-900/90 to-gray-950 border-t border-white/10 w-0 min-w-full"
                                     >
                                         {title && (
                                             <motion.h2

@@ -6,8 +6,10 @@ A stunning astrophotography gallery and observatory app built with Next.js, Pris
 
 ## ✨ Features
 
-- **Photo Management** — Upload with drag-and-drop, auto-resize to 1080×1080 uniform squares via `sharp`
-- **Album Organization** — Create albums, assign cover images, move photos between albums
+- **Auto-Ingest AI Pipeline** — Automatically parses deep-space EXIF telemetry and uses local AI (Ollama + LLaVA) to dynamically title, describe, and categorize uploads into 8 strict astronomical albums.
+- **High-Fidelity Storage** — Dual file-system preserving native uncompressed astrophotography binaries alongside optimized masonry thumbnails.
+- **Photo Management** — Upload with drag-and-drop or async Google Drive rclone syncs.
+- **Predefined Albums** — Locked structure of 8 predefined albums (*Solar System, Moon, Sun, Galaxies, Nebula, Superclusters, Constellations, Comets*) with beautiful preset covers.
 - **Immersive Lightbox** — Full-screen viewer with cosmic animations, zoom, and expanded info
 - **Admin Dashboard** — Edit, delete, and move photos; manage albums and site settings
 - **Responsive Design** — Mobile-first with collapsible sidebar, adaptive grid layouts
@@ -120,9 +122,9 @@ lunar-gallery/
 
 1. **Public visitors** can browse albums and view photos in the gallery
 2. **Admin** logs in at `/login` to unlock upload, edit, delete, and move capabilities
-3. **Uploading** auto-resizes images to 1080×1080 squares for a uniform gallery
-4. **Albums** organize photos into collections with custom cover images
-5. **Moving** photos between albums is one click via the "Move" button on each card
+3. **Uploading** triggers the local AI Vision model to read EXIF telemetry, generating accurate titles, astronomical descriptions, and auto-sorting the capture into one of 8 locked celestial albums.
+4. **High-Resolution Engine** preserves your original telescope captures seamlessly in the background while feeding optimized thumbnails to the masonry grid for blazing-fast load times.
+5. **Moving** photos manually between albums is still available via the "Move" button on each card for admin overrides.
 
 ## 🌟 A Special Note
 

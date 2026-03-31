@@ -8,6 +8,8 @@ import PhotoCard from "./PhotoCard";
 interface Photo {
     id: string;
     url: string;
+    displayUrl: string | null;
+    highResUrl: string | null;
     title: string | null;
     description: string | null;
     width: number | null;
@@ -143,6 +145,8 @@ export default function SearchBar({ isAdmin, albums }: SearchBarProps) {
                                             title={photo.title || undefined}
                                             description={photo.description || undefined}
                                             url={photo.url}
+                                            displayUrl={photo.displayUrl || undefined}
+                                            highResUrl={photo.highResUrl || undefined}
                                             width={photo.width || undefined}
                                             height={photo.height || undefined}
                                             albumId={photo.albumId}

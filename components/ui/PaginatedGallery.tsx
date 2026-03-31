@@ -11,6 +11,7 @@ import { Loader2 } from "lucide-react";
 interface Photo {
     id: string;
     url: string;
+    displayUrl: string | null;
     title: string | null;
     description: string | null;
     width: number | null;
@@ -98,6 +99,7 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
                         title={photo.title || undefined}
                         description={photo.description || undefined}
                         url={photo.url}
+                        displayUrl={photo.displayUrl || undefined}
                         // @ts-ignore - Temporary until prisma client re-syncs
                         highResUrl={photo.highResUrl || undefined}
                         width={photo.width || undefined}

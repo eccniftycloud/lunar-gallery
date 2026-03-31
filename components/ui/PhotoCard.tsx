@@ -17,6 +17,7 @@ interface Album {
 interface PhotoCardProps {
     id: string;
     url: string;
+    displayUrl?: string;
     highResUrl?: string;
     title?: string;
     description?: string;
@@ -27,7 +28,7 @@ interface PhotoCardProps {
     albums?: Album[];
 }
 
-export default function PhotoCard({ id, url, highResUrl, title, description, width, height, albumId, isAdmin, albums }: PhotoCardProps) {
+export default function PhotoCard({ id, url, displayUrl, highResUrl, title, description, width, height, albumId, isAdmin, albums }: PhotoCardProps) {
     const router = useRouter();
     const { addToast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
@@ -91,7 +92,7 @@ export default function PhotoCard({ id, url, highResUrl, title, description, wid
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             layoutId={`photo-${id}`}
-            className="relative break-inside-avoid mb-4 group rounded-xl overflow-hidden glass-panel"
+            className="relative flex flex-col break-inside-avoid mb-4 group rounded-xl overflow-hidden glass-panel"
         >
             {width && height ? (
                 <Image
@@ -99,14 +100,17 @@ export default function PhotoCard({ id, url, highResUrl, title, description, wid
                     alt={title || "Astronomy Photo"}
                     width={width}
                     height={height}
-                    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    style={{ width: '100%', height: 'auto' }}
+                    className="object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer block"
                     onClick={() => setLightboxOpen(true)}
                 />
             ) : (
                 <img
                     src={url}
                     alt={title || "Astronomy Photo"}
-                    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer"
+                    style={{ width: '100%', height: 'auto' }}
+                    className="object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer block"
                     loading="lazy"
                     onClick={() => setLightboxOpen(true)}
                 />
@@ -119,7 +123,7 @@ export default function PhotoCard({ id, url, highResUrl, title, description, wid
                     onClick={() => setLightboxOpen(true)}
                 >
                     {title && <p className="text-white font-medium text-sm">{title}</p>}
-                    {description && <p className="text-gray-400 text-xs mt-1 line-clamp-3">{description}</p>}
+                    {description && <p className="text-gray-400 text-xs mt-1 line-clamp-2">{description}</p>}
                 </div>
             )}
 
@@ -170,8 +174,8 @@ export default function PhotoCard({ id, url, highResUrl, title, description, wid
                                 onClick={() => handleMove(null)}
                                 disabled={isMoving || !albumId}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-40 ${!albumId
-                                        ? "bg-nebula-500/30 text-nebula-300 border border-nebula-500/50"
-                                        : "bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white"
+                                    ? "bg-nebula-500/30 text-nebula-300 border border-nebula-500/50"
+                                    : "bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white"
                                     }`}
                             >
                                 Uncategorized
@@ -183,8 +187,8 @@ export default function PhotoCard({ id, url, highResUrl, title, description, wid
                                     onClick={() => handleMove(album.id)}
                                     disabled={isMoving || albumId === album.id}
                                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors disabled:opacity-40 ${albumId === album.id
-                                            ? "bg-nebula-500/30 text-nebula-300 border border-nebula-500/50"
-                                            : "bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white"
+                                        ? "bg-nebula-500/30 text-nebula-300 border border-nebula-500/50"
+                                        : "bg-white/5 text-gray-300 hover:bg-white/15 hover:text-white"
                                         }`}
                                 >
                                     {album.name}
@@ -282,9 +286,11 @@ export default function PhotoCard({ id, url, highResUrl, title, description, wid
             <PhotoLightbox
                 isOpen={lightboxOpen}
                 onClose={() => setLightboxOpen(false)}
-                url={highResUrl || url}
+                url={displayUrl || highResUrl || url}
                 title={title}
                 description={description}
+                nativeWidth={width}
+                nativeHeight={height}
             />
         </motion.div>
     );

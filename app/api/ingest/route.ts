@@ -28,18 +28,25 @@ export async function POST(req: NextRequest) {
 
         console.log(`[Ingest API] Received file: ${file.name} (${file.size} bytes)`);
 
-        // 3. Create Dual-File System (1080p Thumbnail + Ultra High Res Original)
+        // 3. Create 3-Tier File System (600px Thumb + 2560px Display + Original)
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Extract absolute true telescope dimensions for aesthetic masonry scaling grid
+        // Extract absolute true telescope dimensions for aspect ratio calculations
         const metadata = await sharp(buffer).metadata();
         const originalWidth = metadata.width || 1080;
         const originalHeight = metadata.height || 1080;
+        const aspectRatio = originalHeight / originalWidth;
         
-        // Calculate true aspect ratio bounded by 1080px max width for web aesthetics
-        const thumbWidth = Math.min(originalWidth, 1080);
-        const thumbHeight = Math.round((originalHeight / originalWidth) * thumbWidth);
+        // TIER 1: Thumbnail (600px max width) — masonry grid cards, fast loading
+        const thumbMaxWidth = 600;
+        const thumbWidth = Math.min(originalWidth, thumbMaxWidth);
+        const thumbHeight = Math.round(aspectRatio * thumbWidth);
+
+        // TIER 2: Display (2560px max width) — lightbox viewing, crisp on retina
+        const displayMaxWidth = 2560;
+        const displayWidth = Math.min(originalWidth, displayMaxWidth);
+        const displayHeight = Math.round(aspectRatio * displayWidth);
 
         // Ensure directory exists
         const uploadDir = join(process.cwd(), "public/uploads");
@@ -48,22 +55,33 @@ export async function POST(req: NextRequest) {
         const safeFilename = file.name.replace(/\s/g, "-");
         const timestamp = Date.now();
         const thumbFilename = `${timestamp}-thumb-${safeFilename}`;
+        const displayFilename = `${timestamp}-display-${safeFilename}`;
         const highResFilename = `${timestamp}-highres-${safeFilename}`;
 
         // Path definitions
         const thumbFilepath = join(uploadDir, thumbFilename);
+        const displayFilepath = join(uploadDir, displayFilename);
         const highResFilepath = join(uploadDir, highResFilename);
 
-        // A) Save untouched original High-Res Buffer
+        // A) Save untouched original High-Res Buffer (TIER 3)
         await writeFile(highResFilepath, buffer);
 
-        // B) Generate proportional thumbnail for masonry grids (NO CROPPING)
+        // B) Generate display version for lightbox (TIER 2)
+        const displayBuffer = await sharp(buffer)
+            .resize(displayWidth, displayHeight, { fit: "inside", withoutEnlargement: true })
+            .jpeg({ quality: 90 })
+            .toBuffer();
+        await writeFile(displayFilepath, displayBuffer);
+
+        // C) Generate small thumbnail for masonry grids (TIER 1)
         const thumbBuffer = await sharp(buffer)
-            .resize(thumbWidth, thumbHeight, { fit: "contain", withoutEnlargement: true })
+            .resize(thumbWidth, thumbHeight, { fit: "inside", withoutEnlargement: true })
+            .jpeg({ quality: 85 })
             .toBuffer();
         await writeFile(thumbFilepath, thumbBuffer);
 
         const url = `/uploads/${thumbFilename}`;
+        const displayUrl = `/uploads/${displayFilename}`;
         const highResUrl = `/uploads/${highResFilename}`;
 
         // 4. Send to Local Ollama (LLaVA) for AI Analysis
@@ -102,7 +120,7 @@ Return ONLY a valid JSON object matching this exact shape, nothing else:
 {
   "title": "A highly precise, aesthetic 2-5 word title (e.g. 'Andromeda Galaxy', 'Orion Nebula', 'Full Moon')",
   "description": "A 1-2 sentence description explaining exactly what is visible astronomically.",
-  "albumName": "Choose ONE highly specific category: 'Galaxies', 'Nebulae', 'Star Clusters', 'The Moon', 'Planetary', 'Constellations', or 'Deep Space'"
+                "albumName": "Choose EXACTLY ONE category: 'Solar System', 'Moon', 'Sun', 'Galaxies', 'Nebula', 'Superclusters', 'Constellations', or 'Comets'"
 }`;
 
             // Make request with a strict 30 second timeout for the AI
@@ -139,14 +157,9 @@ Return ONLY a valid JSON object matching this exact shape, nothing else:
                     if (album) {
                         albumId = album.id;
                     } else {
-                        // Create album on the fly if it doesn't exist
-                        const newAlbum = await prisma.album.create({
-                            data: {
-                                name: parsed.albumName,
-                                coverImage: url
-                            }
-                        });
-                        albumId = newAlbum.id;
+                        // Fallback mapping or null: Phase 8.5 strictly forbids ad-hoc album creation.
+                        // We could map invalid names to null (Uncategorized) so the user can manually sort them.
+                        console.warn(`[Ingest API] AI hallucinated unapproved album: ${parsed.albumName}`);
                     }
                 }
                 console.log("[Ingest API] LLaVA Analysis Success:", parsed);
@@ -161,9 +174,10 @@ Return ONLY a valid JSON object matching this exact shape, nothing else:
         const photo = await prisma.photo.create({
             data: {
                 url,
+                displayUrl,
                 highResUrl,
-                width: thumbWidth,
-                height: thumbHeight,
+                width: displayWidth,
+                height: displayHeight,
                 title,
                 description,
                 albumId
