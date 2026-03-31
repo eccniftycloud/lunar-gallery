@@ -42,15 +42,15 @@
 
 - [x] **8.8a — Info Pane Width Constraint**: Refactor `PhotoLightbox.tsx` so the info pane (title + description div) width is constrained to match the **rendered image width**, not the viewport. The image must dictate the container width — the info pane should never stretch wider than the image above it.
 - [x] **8.8b — Full Desktop Audit**: Verify every photo lightbox across all 8 album categories on a 1920px+ desktop Chrome browser. Confirm zero dark gaps on any side between the image edges and the glowing border frame.
-- [ ] **8.8c — Mobile Regression Check**: Confirm the info pane still renders properly on mobile viewports (≤768px) — no text truncation, no overflow.
+- [x] **8.8c — Mobile Regression Check**: Confirm the info pane still renders properly on mobile viewports (≤768px) — no text truncation, no overflow.
 
 ## 🔄 Phase 8.9: Seestar Landscape Rotation & Card Polish
 > *Goal: The Seestar S50 sensor (Sony IMX462) captures at 1920×1080 (16:9 landscape) but the physical mount rotates the output to 1080×1920 (9:16 portrait). This phase adds an optional pipeline rotation to convert images to their natural landscape orientation for desktop-friendly display, and fixes card description overflow in the masonry grid.*
 
 - [x] **8.9a — Description Card Clamp**: Tighten `line-clamp` from 3 to 2 lines on PhotoCard descriptions to prevent long AI-generated text from overflowing card margins. Full text still visible in lightbox.
-- [ ] **8.9b — Pipeline Rotation Toggle**: Add an optional rotation step in `/api/ingest/route.ts` that detects Seestar S50 portrait images (1080×1920 with "Seestar" in EXIF Make) and rotates them 90° clockwise to 1920×1080 landscape before generating the 3-tier files. Controlled by an env var `ROTATE_SEESTAR=true`.
-- [ ] **8.9c — Backfill Rotation Script**: Create `scripts/backfill-rotate.ts` to retroactively rotate existing 1080×1920 Seestar photos to landscape and regenerate all 3 tiers.
-- [ ] **8.9d — Visual Verification**: Verify rotated images display correctly in both lightbox and masonry grid — telemetry overlay text (Seestar S50, coordinates, target) should read naturally in landscape.
+- [x] **8.9b — Pipeline Rotation Toggle**: Add an optional rotation step in `/api/ingest/route.ts` that detects Seestar S50 portrait images (1080×1920 with "Seestar" in EXIF Make) and rotates them 90° clockwise to 1920×1080 landscape before generating the 3-tier files. Controlled by an env var `ROTATE_SEESTAR=true`.
+- [x] **8.9c — Backfill Rotation Script**: Create `scripts/backfill-rotate.ts` to retroactively rotate existing 1080×1920 Seestar photos to landscape and regenerate all 3 tiers.
+- [x] **8.9d — Visual Verification**: Verify rotated images display correctly in both lightbox and masonry grid — telemetry overlay text (Seestar S50, coordinates, target) should read naturally in landscape.
 
 ## ☁️ Phase 9: Advanced Cloud Architecture (AWS Bedrock)
 > *Goal: Transition the AI brain from a local LLaVA dependency to enterprise-grade AWS Bedrock models for increased accuracy, speed, and production deployment portability.*

@@ -34,8 +34,42 @@ export async function POST(req: NextRequest) {
 
         // Extract absolute true telescope dimensions for aspect ratio calculations
         const metadata = await sharp(buffer).metadata();
-        const originalWidth = metadata.width || 1080;
-        const originalHeight = metadata.height || 1080;
+        let originalWidth = metadata.width || 1080;
+        let originalHeight = metadata.height || 1080;
+
+        // Optional: Rotate Seestar S50 portrait images to landscape
+        // The Seestar S50 sensor captures 1920×1080 (16:9 landscape) but the mount
+        // outputs 1080×1920 (portrait). This rotates them to their natural orientation.
+        let processBuffer = buffer; // working buffer (may be rotated)
+        const rotateSeestar = process.env.ROTATE_SEESTAR === 'true';
+        
+        if (rotateSeestar && originalHeight > originalWidth) {
+            // Check EXIF for Seestar/ZWO identification
+            let isSeestar = false;
+            try {
+                const exif = await exifr.parse(buffer, { gps: false });
+                if (exif) {
+                    const makeModel = `${exif.Make || ''} ${exif.Model || ''} ${exif.Software || ''}`.toLowerCase();
+                    isSeestar = makeModel.includes('seestar') || makeModel.includes('zwo');
+                }
+            } catch { /* no exif — skip */ }
+
+            // Also detect by exact Seestar S50 dimensions (1080×1920 or 1080×1963)
+            if (!isSeestar && originalWidth === 1080 && (originalHeight === 1920 || originalHeight === 1963)) {
+                isSeestar = true;
+            }
+
+            if (isSeestar) {
+                console.log(`[Ingest API] Rotating Seestar image from ${originalWidth}×${originalHeight} to landscape`);
+                processBuffer = await sharp(buffer).rotate(90).toBuffer();
+                // Dimensions swap after 90° rotation
+                const rotatedMeta = await sharp(processBuffer).metadata();
+                originalWidth = rotatedMeta.width || originalHeight;
+                originalHeight = rotatedMeta.height || originalWidth;
+                console.log(`[Ingest API] Rotated to ${originalWidth}×${originalHeight}`);
+            }
+        }
+
         const aspectRatio = originalHeight / originalWidth;
         
         // TIER 1: Thumbnail (600px max width) — masonry grid cards, fast loading
@@ -63,18 +97,18 @@ export async function POST(req: NextRequest) {
         const displayFilepath = join(uploadDir, displayFilename);
         const highResFilepath = join(uploadDir, highResFilename);
 
-        // A) Save untouched original High-Res Buffer (TIER 3)
+        // A) Save untouched original High-Res Buffer (TIER 3) — always the original, never rotated
         await writeFile(highResFilepath, buffer);
 
-        // B) Generate display version for lightbox (TIER 2)
-        const displayBuffer = await sharp(buffer)
+        // B) Generate display version for lightbox (TIER 2) — uses processBuffer (rotated if applicable)
+        const displayBuffer = await sharp(processBuffer)
             .resize(displayWidth, displayHeight, { fit: "inside", withoutEnlargement: true })
             .jpeg({ quality: 90 })
             .toBuffer();
         await writeFile(displayFilepath, displayBuffer);
 
-        // C) Generate small thumbnail for masonry grids (TIER 1)
-        const thumbBuffer = await sharp(buffer)
+        // C) Generate small thumbnail for masonry grids (TIER 1) — uses processBuffer (rotated if applicable)
+        const thumbBuffer = await sharp(processBuffer)
             .resize(thumbWidth, thumbHeight, { fit: "inside", withoutEnlargement: true })
             .jpeg({ quality: 85 })
             .toBuffer();
