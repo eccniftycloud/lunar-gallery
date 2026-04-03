@@ -118,6 +118,15 @@ export async function POST(req: NextRequest) {
         const displayUrl = `/uploads/${displayFilename}`;
         const highResUrl = `/uploads/${highResFilename}`;
 
+        // Extract dominant color for cosmic skeleton tinting (Phase 10d)
+        let dominantColor: string | null = null;
+        try {
+            const { dominant } = await sharp(thumbBuffer).stats();
+            dominantColor = `#${dominant.r.toString(16).padStart(2, '0')}${dominant.g.toString(16).padStart(2, '0')}${dominant.b.toString(16).padStart(2, '0')}`;
+        } catch {
+            // Non-critical
+        }
+
         // 4. Send to Local Ollama (LLaVA) for AI Analysis
         let title = "Auto Upload";
         let description = null;
@@ -214,7 +223,8 @@ Return ONLY a valid JSON object matching this exact shape, nothing else:
                 height: displayHeight,
                 title,
                 description,
-                albumId
+                albumId,
+                dominantColor,
             },
         });
 

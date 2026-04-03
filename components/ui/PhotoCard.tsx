@@ -14,6 +14,8 @@ interface Album {
     name: string;
 }
 
+export type ViewMode = "grid" | "masonry";
+
 interface PhotoCardProps {
     id: string;
     url: string;
@@ -26,9 +28,11 @@ interface PhotoCardProps {
     albumId?: string | null;
     isAdmin?: boolean;
     albums?: Album[];
+    viewMode?: ViewMode;
+    dominantColor?: string;
 }
 
-export default function PhotoCard({ id, url, displayUrl, highResUrl, title, description, width, height, albumId, isAdmin, albums }: PhotoCardProps) {
+export default function PhotoCard({ id, url, displayUrl, highResUrl, title, description, width, height, albumId, isAdmin, albums, viewMode = "grid", dominantColor }: PhotoCardProps) {
     const router = useRouter();
     const { addToast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
@@ -105,42 +109,66 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
         }
     };
 
+    // Determine the background style: use dominantColor with low opacity if available
+    const bgStyle = dominantColor
+        ? { backgroundColor: `${dominantColor}33` } // ~20% opacity hex suffix
+        : undefined;
+
+    const isGrid = viewMode === "grid";
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             layoutId={`photo-${id}`}
-            className="relative flex flex-col break-inside-avoid mb-4 group rounded-xl overflow-hidden glass-panel"
+            className={`relative flex flex-col group rounded-xl overflow-hidden glass-panel ${
+                isGrid ? "h-full" : "break-inside-avoid mb-4"
+            }`}
         >
-            {effectiveWidth && effectiveHeight ? (
-                <Image
-                    src={effectiveUrl}
-                    alt={title || "Astronomy Photo"}
-                    width={effectiveWidth}
-                    height={effectiveHeight}
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    style={{ width: '100%', height: 'auto' }}
-                    className="object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer block"
-                    onClick={() => setLightboxOpen(true)}
-                />
-            ) : (
-                <img
-                    src={effectiveUrl}
-                    alt={title || "Astronomy Photo"}
-                    style={{ width: '100%', height: 'auto' }}
-                    className="object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer block"
-                    loading="lazy"
-                    onClick={() => setLightboxOpen(true)}
-                />
-            )}
+            <div
+                className={`relative w-full overflow-hidden ${
+                    isGrid ? "aspect-square" : ""
+                }`}
+                style={bgStyle || { backgroundColor: "rgba(0,0,0,0.5)" }}
+            >
+                {effectiveWidth && effectiveHeight ? (
+                    <Image
+                        src={effectiveUrl}
+                        alt={title || "Astronomy Photo"}
+                        width={effectiveWidth}
+                        height={effectiveHeight}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        className={`${
+                            isGrid
+                                ? "absolute inset-0 w-full h-full object-cover"
+                                : "w-full h-auto object-cover"
+                        } transition-transform duration-500 group-hover:scale-105 cursor-pointer block`}
+                        onClick={() => setLightboxOpen(true)}
+                    />
+                ) : (
+                    <img
+                        src={effectiveUrl}
+                        alt={title || "Astronomy Photo"}
+                        className={`${
+                            isGrid
+                                ? "absolute inset-0 w-full h-full object-cover"
+                                : "w-full h-auto object-cover"
+                        } transition-transform duration-500 group-hover:scale-105 cursor-pointer block`}
+                        loading="lazy"
+                        onClick={() => setLightboxOpen(true)}
+                    />
+                )}
+            </div>
 
             {/* Photo info — always visible below image */}
             {(title || description) && (
                 <div
-                    className="px-3 py-2 bg-white/5 border-t border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                    className={`px-3 py-2 bg-white/5 border-t border-white/10 cursor-pointer hover:bg-white/10 transition-colors flex flex-col justify-start ${
+                        isGrid ? "flex-1" : ""
+                    }`}
                     onClick={() => setLightboxOpen(true)}
                 >
-                    {title && <p className="text-white font-medium text-sm">{title}</p>}
+                    {title && <p className="text-white font-medium text-sm line-clamp-1">{title}</p>}
                     {description && <p className="text-gray-400 text-xs mt-1 line-clamp-2">{description}</p>}
                 </div>
             )}

@@ -1,10 +1,11 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/app/lib/prisma";
-import { Settings, Database, User, Image, FolderOpen, Shield, KeyRound, Paintbrush } from "lucide-react";
+import { Settings, Database, User, Image, FolderOpen, Shield, KeyRound, Paintbrush, Sparkles } from "lucide-react";
 import PasswordChangeForm from "./PasswordChangeForm";
 import TitleChangeForm from "./TitleChangeForm";
-import { getAdminConfig } from "@/app/lib/actions";
+import EventManager from "./EventManager";
+import { getAdminConfig, getAllEvents } from "@/app/lib/actions";
 
 export default async function SettingsPage() {
     const session = await auth();
@@ -15,6 +16,7 @@ export default async function SettingsPage() {
     const albumCount = await prisma.album.count();
     const photoCount = await prisma.photo.count();
     const adminConfig = await getAdminConfig();
+    const events = await getAllEvents();
 
     return (
         <div className="max-w-4xl mx-auto space-y-10">
@@ -36,6 +38,18 @@ export default async function SettingsPage() {
                     <h2 className="text-lg font-semibold text-white">Site Customization</h2>
                 </div>
                 <TitleChangeForm currentTitle={adminConfig?.siteTitle || "Lunar Gallery"} />
+            </section>
+
+            {/* Current Events Management */}
+            <section className="glass-panel rounded-2xl p-6 space-y-5">
+                <div className="flex items-center gap-3 mb-2">
+                    <Sparkles className="w-5 h-5 text-nebula-400" />
+                    <div>
+                        <h2 className="text-lg font-semibold text-white">Current Events</h2>
+                        <p className="text-xs text-gray-500">Manage astronomy events shown on the homepage (max 4 visible)</p>
+                    </div>
+                </div>
+                <EventManager events={events as any} />
             </section>
 
             {/* Admin Account */}

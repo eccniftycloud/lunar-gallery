@@ -18,19 +18,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Google Drive Bridge:** Created `scripts/sync-drive.sh` utilizing `rclone copy` to automatically pull astrophotography straight from the user's tablet cloud sync to the local server.
 - **Async File Watcher:** Built an invisible, node-based file watcher (`scripts/file-watcher.ts`) leveraging `chokidar` with a custom asynchronous queue, ensuring large sync batches are processed flawlessly and sequentially by the local AI model.
 
+## [1.2.0] - 2026-04-02
+### Added
+- **Uniform Grid Layout (Phase 10a/b):** Converted the gallery from CSS `columns` masonry to true CSS Grid with `aspect-square` cards and `object-cover` cropping, enforcing perfectly aligned rows across all albums on desktop and mobile.
+- **Grid/Flow View Toggle (Phase 10c):** New glassmorphism toggle in the gallery toolbar lets users switch between:
+  - **Grid** — Uniform square cards (Apple Photos style) for clean visual alignment.
+  - **Flow** — Classic Pinterest-style masonry waterfall using natural aspect ratios.
+- **Cosmic Dominant Color Skeletons (Phase 10d):** The Sharp pipeline now extracts the dominant RGB color from each thumbnail and stores it as a hex value (`dominantColor` field). Card backgrounds are tinted with the actual hue of the celestial object while images load, replacing the generic gray shimmer.
+- **Prisma Schema:** Added `dominantColor` field to the `Photo` model.
+- **Backfill Script:** Created `scripts/backfill-dominant-color.ts` to retroactively extract and store dominant colors for all 32 existing photos. Idempotent — safe to rerun.
+- **ViewToggle Component:** New `components/ui/ViewToggle.tsx` matching the existing `SortControl` design language.
+- **Pipeline Integration:** Both manual upload (`actions.ts`) and auto-ingest API (`/api/ingest`) now extract dominant color during the Sharp processing step.
+- **Expanded Homepage Albums (Phase 10e):** All 8 predefined albums now display on the homepage in a gorgeous 2×4 grid, replacing the previous 4-album limit. Section header updated from "Featured Albums" to "Albums". Recent Captures section also upgraded to use the new uniform grid layout.
+- **Astronomy Current Events Section (Phase 10f):** New homepage section between Albums and Recent Captures. Redesigned as a single full-width glassmorphism banner panel with a pulsing nebula glow border (`animate-glow`). Features include:
+  - **Prisma `Event` Model:** Title, description, optional cover image, external URL, event date, and active toggle.
+  - **CurrentEventsPanel Component:** Full-width banner with compact event rows featuring stacked date badges (month/day), titles with external link icons, descriptions, and directional arrows. Mobile-responsive.
+  - **Admin Management:** New "Current Events" panel in Settings with inline create form, visibility toggle (eye icon), and delete functionality.
+  - **Homepage Integration:** Section auto-hides when no active events exist, keeping the page clean. Max 4 events.
+  - **Server Actions:** Full CRUD (create, toggle, delete) with Sharp image resizing for uploaded cover images.
+
 ## [1.1.0] - 2026-03-30
 ### Added
-- **"The Cosmic Fidelity Update" (Phase 8.7 - 8.9):**
-  - **Pro 3-Tier Image Pipeline:** Industry-standard asset strategy generating Original (highres), Display (2560px), and Thumbnail (600px) versions. Significantly reduces load times (Thumbnails ~30KB) while maintaining max quality in lightbox.
-  - **Hybrid Orientation Logic (The "Smart View"):** Intelligent viewport routing. The gallery now serves **Landscape 16:9** on desktop/tablets for a cinematic feel, and **Portrait 9:16** on cell phones for a native vertical experience.
-  - **Seestar S50 Auto-Rotation:** Built-in Sharp pipeline detects Seestar portrait captures and auto-rotates to 16:9 landscape when `ROTATE_SEESTAR=true`.
-  - **Native Resolution Protector:** Capped UI image dimensions to actual pixel counts, preventing blurry upscaling and ensuring future-proof crispness for high-res future telescopes.
-  - **Backfill Suite:** Powerful Idris scripts (`backfill-3tier.ts`, `backfill-rotate.ts`) to retroactively upgrade existing gallery assets to the new standard.
+- **Pro 3-Tier Image Pipeline (Phase 8.7):** Industry-standard multi-tier image strategy for every photo:
+  - **Original** (`highres-*`) — untouched binary preserved forever for download/zoom.
+  - **Display** (`display-*`, max 2560px) — optimized for lightbox viewing. Uses Sharp `withoutEnlargement: true` so small originals stay native.
+  - **Thumbnail** (`thumb-*`, max 600px) — optimized for masonry grid. Tiny file sizes (~30-50KB) for instant gallery browsing.
+- **Prisma Schema:** Added `displayUrl` field to the `Photo` model for the display tier.
+- **Backfill Script:** Created `scripts/backfill-3tier.ts` to retroactively upgrade all 32 existing photos to the 3-tier format. Idempotent — safe to rerun.
+- **Native Resolution Cap (Phase 8.7e):** Lightbox image `max-width`/`max-height` capped to actual pixel dimensions, preventing browser upscaling beyond native resolution. Future high-res telescope images will automatically fill the screen.
+- **Component Wiring:** `displayUrl` piped through `PhotoCard`, `PhotoLightbox`, `PaginatedGallery`, `SearchBar`, and homepage. Grid uses thumb (600px), lightbox uses display (2560px).
 
 ### Fixed
-- **The "Dark Gap" Bug (Phase 8.8):** Resolved persistent layout issue where Info Panes (titles/descriptions) would stretch the glowing border beyond image edges. Implemented `inline-flex` width-constraints to ensure the frame perfectly 'hugs' the image on all viewports.
-- **Masonry Visual Harmony:** Fixed card overflow by tightening `line-clamp-2` on descriptions, ensuring a clean, uniform grid layout.
-- **Mobile Fidelity:** Full regression audit for iPhone/Android viewports; ensuring zero UI overflows and proper text wrapping in the cosmic glassmorphism panels.
+- **Lightbox Info Pane Overflow (Phase 8.8a):** Long description text was stretching the glowing border frame wider than the image on desktop viewports, creating a dark gap on the right side of portrait photos. Fixed by using `inline-flex` container + `w-0 min-w-full` on the info pane so the image dictates width and text wraps within it.
+- **Lightbox Desktop Audit (Phase 8.8b):** Verified all 32 photos across 4 album categories — zero dark gaps on any side.
+- **Description Card Overflow (Phase 8.9a):** Tightened `line-clamp` from 3 to 2 lines on PhotoCard descriptions to prevent long AI-generated text from overflowing masonry card margins. Full descriptions remain visible in lightbox.
+- **Seestar Landscape Rotation (Phase 8.9b/c):** Added server-side Sharp pipeline to detect Seestar S50 portrait captures and automatically rotate them 90° to landscape 16:9 for a cinematic desktop experience. Accompanied by `scripts/backfill-rotate.ts` which updated all 32 existing assets.
+- **Hybrid Orientation Logic (Phase 8.9e):** Intelligent client-side viewport routing. Desktop/Tablets receive the rotated landscape tier, while cell phones (< 768px) automatically revert to the original vertical portrait orientation. This ensures the best viewing experience for both monitor aspect ratios and narrow phone screens.
 
 ## [1.0.1] - 2026-02-24
 ### Fixed

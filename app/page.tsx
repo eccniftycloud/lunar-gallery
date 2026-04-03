@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { getAlbums, getPhotos, getAdminConfig } from "./lib/actions";
+import { getAlbums, getPhotos, getAdminConfig, getActiveEvents } from "./lib/actions";
 import AlbumCard from "@/components/ui/AlbumCard";
 import PhotoCard from "@/components/ui/PhotoCard";
+import CurrentEventsPanel from "@/components/ui/CurrentEventsPanel";
 import SearchBar from "@/components/ui/SearchBar";
 import { Plus, ArrowRight } from "lucide-react";
 import { auth } from "@/auth";
@@ -13,9 +14,10 @@ export default async function Home() {
   const recentPhotos = await getPhotos();
   const adminConfig = await getAdminConfig();
 
-  // Limit to 4 albums and 8 photos for dashboard
-  const featuredAlbums = albums.slice(0, 4);
+  // Show all albums on the homepage (Phase 10e)
+  const featuredAlbums = albums;
   const featuredPhotos = recentPhotos.slice(0, 8);
+  const events = await getActiveEvents();
 
   return (
     <div className="space-y-12 pb-20">
@@ -66,7 +68,7 @@ export default async function Home() {
       {/* Albums Section */}
       <section>
         <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <h2 className="text-2xl font-bold text-white">Featured Albums</h2>
+          <h2 className="text-2xl font-bold text-white">Albums</h2>
           <Link href="/albums" className="text-sm text-nebula-400 hover:text-nebula-300 flex items-center gap-1">
             View all <ArrowRight className="w-4 h-4" />
           </Link>
@@ -94,6 +96,11 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Current Events — Full-width banner panel (Phase 10f) */}
+      {events.length > 0 && (
+        <CurrentEventsPanel events={events as any} />
+      )}
+
       {/* Recent Photos Section */}
       <section>
         <div className="flex items-center justify-between mb-8">
@@ -103,7 +110,7 @@ export default async function Home() {
           </Link>
         </div>
 
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {featuredPhotos.map((photo) => (
             <PhotoCard
               key={photo.id}
@@ -120,11 +127,15 @@ export default async function Home() {
               albumId={photo.albumId}
               isAdmin={!!session?.user}
               albums={albums.map(a => ({ id: a.id, name: a.name }))}
+              viewMode="grid"
+              // @ts-ignore - dominantColor available after prisma regenerate
+              dominantColor={photo.dominantColor || undefined}
             />
-          ))}
+          ))
+          }
 
           {featuredPhotos.length === 0 && (
-            <div className="py-12 text-center text-gray-500 w-full break-inside-avoid">
+            <div className="col-span-full py-12 text-center text-gray-500">
               No photos uploaded yet.
             </div>
           )}

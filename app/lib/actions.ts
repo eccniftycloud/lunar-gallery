@@ -210,6 +210,15 @@ export async function uploadPhoto(formData: FormData) {
     const displayUrl = `/uploads/${displayFilename}`
     const highResUrl = `/uploads/${highResFilename}`
 
+    // Extract dominant color for cosmic skeleton tinting (Phase 10d)
+    let dominantColor: string | null = null;
+    try {
+        const { dominant } = await sharp(resizedBuffer).stats();
+        dominantColor = `#${dominant.r.toString(16).padStart(2, '0')}${dominant.g.toString(16).padStart(2, '0')}${dominant.b.toString(16).padStart(2, '0')}`;
+    } catch {
+        // Non-critical — skeleton will fall back to default nebula shimmer
+    }
+
     await prisma.photo.create({
         data: {
             url,
@@ -220,6 +229,7 @@ export async function uploadPhoto(formData: FormData) {
             albumId: albumId || null,
             width: displayWidth,
             height: displayHeight,
+            dominantColor,
         },
     })
 
@@ -392,5 +402,144 @@ export async function updateSiteTitle(formData: FormData) {
     });
 
     revalidatePath('/', 'layout');
+    return { success: true };
+}
+
+// ============================================
+// Event Actions (Phase 10f: Current Events)
+// ============================================
+
+export async function getActiveEvents() {
+    return prisma.event.findMany({
+        where: { active: true },
+        orderBy: { eventDate: 'desc' },
+        take: 4,
+    });
+}
+
+export async function getAllEvents() {
+    return prisma.event.findMany({
+        orderBy: { createdAt: 'desc' },
+    });
+}
+
+export async function createEvent(formData: FormData) {
+    const session = await auth();
+    if (!session?.user) throw new Error('Unauthorized');
+
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const imageUrl = formData.get('imageUrl') as string;
+    const externalUrl = formData.get('externalUrl') as string;
+    const eventDateStr = formData.get('eventDate') as string;
+
+    if (!title) throw new Error('Title is required');
+
+    // Handle optional image upload
+    let finalImageUrl = imageUrl || null;
+    const file = formData.get('imageFile') as File;
+    if (file && file.size > 0) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uploadDir = join(process.cwd(), 'public/uploads');
+        await mkdir(uploadDir, { recursive: true });
+        const filename = `${Date.now()}-event-${file.name.replace(/\s/g, '-')}`;
+        const filepath = join(uploadDir, filename);
+
+        // Resize to a reasonable card size
+        const resizedBuffer = await sharp(buffer)
+            .resize(800, 600, { fit: 'cover', withoutEnlargement: true })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+        await writeFile(filepath, resizedBuffer);
+        finalImageUrl = `/uploads/${filename}`;
+    }
+
+    await prisma.event.create({
+        data: {
+            title,
+            description: description || null,
+            imageUrl: finalImageUrl,
+            externalUrl: externalUrl || null,
+            eventDate: eventDateStr ? new Date(eventDateStr) : null,
+        },
+    });
+
+    revalidatePath('/');
+    revalidatePath('/settings');
+    return { success: true };
+}
+
+export async function updateEvent(id: string, formData: FormData) {
+    const session = await auth();
+    if (!session?.user) throw new Error('Unauthorized');
+
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const externalUrl = formData.get('externalUrl') as string;
+    const eventDateStr = formData.get('eventDate') as string;
+
+    if (!title) throw new Error('Title is required');
+
+    // Handle optional image upload
+    let imageUrl: string | undefined = undefined;
+    const file = formData.get('imageFile') as File;
+    if (file && file.size > 0) {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uploadDir = join(process.cwd(), 'public/uploads');
+        await mkdir(uploadDir, { recursive: true });
+        const filename = `${Date.now()}-event-${file.name.replace(/\s/g, '-')}`;
+        const filepath = join(uploadDir, filename);
+
+        const resizedBuffer = await sharp(buffer)
+            .resize(800, 600, { fit: 'cover', withoutEnlargement: true })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+        await writeFile(filepath, resizedBuffer);
+        imageUrl = `/uploads/${filename}`;
+    }
+
+    await prisma.event.update({
+        where: { id },
+        data: {
+            title,
+            description: description || null,
+            ...(imageUrl && { imageUrl }),
+            externalUrl: externalUrl || null,
+            eventDate: eventDateStr ? new Date(eventDateStr) : null,
+        },
+    });
+
+    revalidatePath('/');
+    revalidatePath('/settings');
+    return { success: true };
+}
+
+export async function toggleEvent(id: string) {
+    const session = await auth();
+    if (!session?.user) throw new Error('Unauthorized');
+
+    const event = await prisma.event.findUnique({ where: { id } });
+    if (!event) throw new Error('Event not found');
+
+    await prisma.event.update({
+        where: { id },
+        data: { active: !event.active },
+    });
+
+    revalidatePath('/');
+    revalidatePath('/settings');
+    return { success: true };
+}
+
+export async function deleteEvent(id: string) {
+    const session = await auth();
+    if (!session?.user) throw new Error('Unauthorized');
+
+    await prisma.event.delete({ where: { id } });
+
+    revalidatePath('/');
+    revalidatePath('/settings');
     return { success: true };
 }

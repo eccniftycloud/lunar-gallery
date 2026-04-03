@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import PhotoCard from "./PhotoCard";
+import type { ViewMode } from "./PhotoCard";
 import SortControl from "./SortControl";
+import ViewToggle from "./ViewToggle";
 import { GallerySkeletonGrid } from "./Skeletons";
 import { getPhotos } from "@/app/lib/actions";
 import type { SortOption } from "@/app/lib/actions";
@@ -17,6 +19,7 @@ interface Photo {
     width: number | null;
     height: number | null;
     albumId: string | null;
+    dominantColor?: string | null;
 }
 
 interface Album {
@@ -38,6 +41,7 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
     const [hasMore, setHasMore] = useState(initialPhotos.length === 20);
     const [sortBy, setSortBy] = useState<SortOption>("newest");
     const [sortLoading, setSortLoading] = useState(false);
+    const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
     const loadMore = async () => {
         if (loading || !hasMore) return;
@@ -51,7 +55,7 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
             }
 
             if (nextPhotos.length > 0) {
-                setPhotos((prev) => [...prev, ...nextPhotos]);
+                setPhotos((prev) => [...prev, ...(nextPhotos as unknown as Photo[])]);
                 setPage((prev) => prev + 1);
             }
         } catch (error) {
@@ -70,7 +74,7 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
         try {
             // Re-fetch from page 0 with new sort order
             const freshPhotos = await getPhotos(albumId, 0, 20, newSort);
-            setPhotos(freshPhotos);
+            setPhotos(freshPhotos as unknown as Photo[]);
             setPage(1);
             setHasMore(freshPhotos.length === 20);
         } catch (error) {
@@ -80,18 +84,24 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
         }
     };
 
+    // Layout classes based on viewMode
+    const gridClasses = viewMode === "grid"
+        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+        : "columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-0";
+
     return (
         <div className="space-y-6">
-            {/* Sort Controls */}
-            <div className="flex justify-end">
+            {/* Controls Bar: Sort + View Toggle */}
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+                <ViewToggle currentView={viewMode} onViewChange={setViewMode} />
                 <SortControl currentSort={sortBy} onSortChange={handleSortChange} />
             </div>
 
             {/* Photo Grid */}
             {sortLoading ? (
-                <GallerySkeletonGrid count={photos.length || 4} />
+                <GallerySkeletonGrid count={photos.length || 4} viewMode={viewMode} />
             ) : (
-            <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4">
+            <div className={gridClasses}>
                 {photos.map((photo) => (
                     <PhotoCard
                         key={photo.id}
@@ -107,6 +117,8 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
                         albumId={photo.albumId}
                         isAdmin={isAdmin}
                         albums={albums}
+                        viewMode={viewMode}
+                        dominantColor={photo.dominantColor || undefined}
                     />
                 ))}
             </div>
