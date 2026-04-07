@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased / Next Feature]
+
+## [1.3.0] - 2026-04-06
+### Added (Phase 9: Advanced Cloud Architecture)
+- **AWS Bedrock Configuration (Phase 9a):** Safely integrated AWS environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`) into `.env` to prepare for cloud AI ingestion. Verified local AWS SDK connectivity.
+- **Hybrid AI Toggle (Phase 9b):** Implemented an admin UI toggle in `/settings` allowing localized switching between "Local AI" (Ollama) and "Cloud AI" (AWS Bedrock).
+- **Bedrock AI Adapter (Phase 9c):** Updated the `/api/ingest` pipeline to natively utilize `@aws-sdk/client-bedrock-runtime` and successfully invoke `anthropic.claude-3-haiku-20240307-v1:0` using high-efficiency thumbnail base64 payloads to save costs.
+- **Parallel Cloud Ingestion (Phase 9d):** Upgraded `file-watcher.ts` queue processing to support up to 5 concurrent stream instances for AWS. Implemented dynamic Prisma detection to throttle back to 1 worker if toggled locally.
+- **Cost & Token Telemetry (Phase 9e):** Added live token tracking to the SQLite database and built a gorgeous AWS Cost Telemetry widget in `/settings` calculating fractions of a cent using exact Claude 3 Haiku pricing metrics.
+- **AWS EC2 Prep & Containerization (Phase 9f):** Rewrote `Dockerfile` and `docker-compose.yml` to strictly handle Next.js local standalone logic while forcing SQLite `.db` schemas to gracefully synchronize with immortal block storage volumes via an `entrypoint.sh` proxy.
+- **Keyless Security Strike (Phase 9g):** Nullified due to on-premises configuration (AWS EC2 Instance Profiles are intentionally bypassed for the physical Mini-PC).
 - **Search:** Real-time search feature using case-insensitive SQLite queries and a glassmorphism UI overlay.
 - **Backfill Script:** Idempotent script (`scripts/backfill-dimensions.ts`) to populate missing width/height for old photos using sharp.
 - **Sorting:** Dynamic gallery sorting (Newest, Oldest, A→Z) with smooth layout transitions.
@@ -14,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Backup Script:** Added local SQLite and uploads backup script (`scripts/backup.sh`) with `--restore` capability and auto-cleanup.
 - **Rate Limiting:** Zero-dependency in-memory rate limiter protecting upload (10/5min) and login (5/min) endpoints.
 - **Auto-Ingest API:** New `/api/ingest` endpoint protected by `INGEST_API_KEY` that automatically resizes and maps uploads directly to the database.
-- **AI "Brain" Adapter:** Integrated `Ollama/LLaVA` directly into the ingest pipeline to automatically generate beautiful Titles, Descriptions, and dynamically assign Albums without user input.
+- **AI "Brain" Adapter:** Integrated `Ollama/LLaVA` directly into the ingest pipeline to automatically ghat's happening.enerate beautiful Titles, Descriptions, and dynamically assign Albums without user input.
 - **Google Drive Bridge:** Created `scripts/sync-drive.sh` utilizing `rclone copy` to automatically pull astrophotography straight from the user's tablet cloud sync to the local server.
 - **Async File Watcher:** Built an invisible, node-based file watcher (`scripts/file-watcher.ts`) leveraging `chokidar` with a custom asynchronous queue, ensuring large sync batches are processed flawlessly and sequentially by the local AI model.
 

@@ -1,32 +1,42 @@
+# ==========================================
+# LUNAR GALLERY - PRODUCTION DEPLOYMENT
+# ==========================================
+# SUPER-LEAN ARCHITECTURE: 
+# This file deploys exactly 1 container. Because Lunar Gallery is built on 
+# Next.js Standalone and an embedded SQLite database, there is no need for 
+# a separate Postgres or Node backend container. Everything runs in one lightweight process.
+#
+# LOCAL DEPLOYMENT (Mini-PC):
+# Run `docker compose up --build -d`. The app binds to Port 80.
+# It uses the AWS keys inside your .env file to talk to Amazon Bedrock.
+#
+# CLOUD DEPLOYMENT (AWS EC2 Standalone):
+# The deployment commands are identical. Simply SSH into your EC2, clone the repo,
+# and run `docker compose up -d`. If you assign an AWS IAM Instance Role to the EC2,
+# you can delete your .env AWS keys entirely and it will authenticate to Bedrock securely and invisibly!
+# ==========================================
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: lunar-gallery
-    # network_mode: host (removed for better reverse proxy compatibility)
     ports:
-      - "3000:3000"
+      # Map EC2 Port 80 directly to Container Port 3000 for direct domain pointing
+      - "80:3000"
     env_file:
       - .env
+    environment:
+      # Enforce the database writes inside the mounted volume
+      - DATABASE_URL=file:./prisma/prod.db
     volumes:
-      # Persist the SQLite database
+      # Persist the SQLite database so container rebuilds do not destroy data
       - db_data:/app/prisma
-      # Persist uploaded photos
+      # Persist uploaded astrophotography images
       - uploads_data:/app/public/uploads
     restart: unless-stopped
     
-    # ----------------------------------------------------
-    # OPTIONAL: Uncomment below if using Nginx Proxy Manager
-    # ----------------------------------------------------
-    # networks:
-    #   - default
-    #   - nginxProxyManagerNetwork # Change to your NPM network name
-
-# networks:
-#   nginxProxyManagerNetwork:
-#     external: true
-
 volumes:
   db_data:
   uploads_data:

@@ -373,7 +373,10 @@ export async function getAdminConfig() {
     return prisma.adminConfig.findUnique({
         where: { id: 'admin' },
         select: {
-            siteTitle: true
+            siteTitle: true,
+            aiMode: true,
+            bedrockInputTokens: true,
+            bedrockOutputTokens: true,
         }
     });
 }
@@ -402,6 +405,30 @@ export async function updateSiteTitle(formData: FormData) {
     });
 
     revalidatePath('/', 'layout');
+    return { success: true };
+}
+
+export async function updateAiMode(formData: FormData) {
+    const session = await auth();
+    if (!session?.user) throw new Error('Unauthorized');
+
+    const mode = formData.get('mode') as string;
+    if (mode !== 'local' && mode !== 'cloud') {
+        throw new Error('Invalid AI mode');
+    }
+
+    await prisma.adminConfig.upsert({
+        where: { id: 'admin' },
+        update: { aiMode: mode },
+        create: {
+            id: 'admin',
+            username: process.env.ADMIN_USERNAME || 'admin',
+            password: 'placeholder_hash_should_not_happen',
+            aiMode: mode
+        }
+    });
+
+    revalidatePath('/settings');
     return { success: true };
 }
 

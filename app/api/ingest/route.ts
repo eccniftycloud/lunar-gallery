@@ -4,6 +4,7 @@ import { writeFile, mkdir } from "fs/promises";
 import prisma from "@/app/lib/prisma";
 import sharp from "sharp";
 import exifr from "exifr";
+import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 // Allow scaling up payload size if astrophotography images are large
 export const maxDuration = 60; // 60 seconds
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
         // Optional: Rotate Seestar S50 portrait images to landscape
         // The Seestar S50 sensor captures 1920×1080 (16:9 landscape) but the mount
         // outputs 1080×1920 (portrait). This rotates them to their natural orientation.
-        let processBuffer = buffer; // working buffer (may be rotated)
+        let processBuffer: any = buffer; // working buffer (may be rotated)
         const rotateSeestar = process.env.ROTATE_SEESTAR === 'true';
         
         if (rotateSeestar && originalHeight > originalWidth) {
@@ -127,14 +128,22 @@ export async function POST(req: NextRequest) {
             // Non-critical
         }
 
-        // 4. Send to Local Ollama (LLaVA) for AI Analysis
+        // 4. Fetch AI Context & Configuration
         let title = "Auto Upload";
         let description = null;
         let albumId = null;
 
         try {
-            console.log("[Ingest API] Sending image to local Ollama (LLaVA) for analysis...");
-            const base64Image = buffer.toString("base64");
+            let aiMode = "local";
+            const config = await prisma.adminConfig.findUnique({ where: { id: "admin" } });
+            if (config && config.aiMode) aiMode = config.aiMode;
+
+            console.log(`[Ingest API] Sending image to ${aiMode === "cloud" ? "AWS Bedrock (Cloud AI)" : "local Ollama (LLaVA)"} for analysis...`);
+            
+            // Generate base64 representations
+            // For LLaVA, the original buffer is fine. But for Cloud AI, 
+            // sending the thumbBuffer saves bandwidth and Bedrock tokens immensely while retaining enough quality for classification.
+            const base64Image = (aiMode === "cloud" ? thumbBuffer : buffer).toString("base64");
             
             // Phase 8c: Parse EXIF data from astronomical fits/jpegs
             let exifContext = "";
@@ -145,7 +154,7 @@ export async function POST(req: NextRequest) {
                     const keysToKeep = ["Make", "Model", "Software", "DateTimeOriginal", "UserComment", "ImageDescription", "Subject", "Title"];
                     const relevantData = Object.entries(parsedExif).filter(([key, value]) => {
                         return keysToKeep.includes(key) || (typeof value === "string" && value.length > 2);
-                    }).slice(0, 8); // Keep it strictly brief so LLaVA doesn't get overwhelmed
+                    }).slice(0, 8); // Keep it strictly brief
 
                     if (relevantData.length > 0) {
                         const metadataPayload = Object.fromEntries(relevantData);
@@ -157,60 +166,123 @@ export async function POST(req: NextRequest) {
             }
 
             // Phase 8d & 8g: Precision AI Prompt Architecture Tuning
-            const aiPrompt = `Analyze this astrophotography or celestial image.${exifContext}
-            
-Return ONLY a valid JSON object matching this exact shape, nothing else:
-{
-  "title": "A highly precise, aesthetic 2-5 word title (e.g. 'Andromeda Galaxy', 'Orion Nebula', 'Full Moon')",
-  "description": "A 1-2 sentence description explaining exactly what is visible astronomically.",
-                "albumName": "Choose EXACTLY ONE category: 'Solar System', 'Moon', 'Sun', 'Galaxies', 'Nebula', 'Superclusters', 'Constellations', or 'Comets'"
-}`;
+            const aiPrompt = `Analyze this astrophotography or celestial image.${exifContext}\n\nReturn ONLY a valid JSON object matching this exact shape, nothing else:\n{\n  "title": "A highly precise, aesthetic 2-5 word title (e.g. 'Andromeda Galaxy', 'Orion Nebula', 'Full Moon')",\n  "description": "A 1-2 sentence description explaining exactly what is visible astronomically.",\n  "albumName": "Choose EXACTLY ONE category: 'Solar System', 'Moon', 'Sun', 'Galaxies', 'Nebula', 'Superclusters', 'Constellations', or 'Comets'"\n}`;
 
-            // Make request with a strict 30 second timeout for the AI
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
+            let responseText = "";
 
-            const ollamaRes = await fetch("http://localhost:11434/api/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                signal: controller.signal,
-                body: JSON.stringify({
-                    model: "llava",
-                    prompt: aiPrompt,
-                    images: [base64Image],
-                    stream: false,
-                    format: "json",
-                }),
-            });
-            clearTimeout(timeoutId);
-
-            if (ollamaRes.ok) {
-                const aiData = await ollamaRes.json();
-                const parsed = JSON.parse(aiData.response);
+            if (aiMode === "cloud") {
+                // Phase 9c: Bedrock Adapter (Claude 3 Haiku)
+                const client = new BedrockRuntimeClient({ region: process.env.AWS_REGION || "us-east-1" });
                 
-                if (parsed.title) title = parsed.title;
-                if (parsed.description) description = parsed.description;
+                const payload = {
+                    anthropic_version: "bedrock-2023-05-31",
+                    max_tokens: 500,
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                {
+                                    type: "image",
+                                    source: {
+                                        type: "base64",
+                                        media_type: "image/jpeg",
+                                        data: base64Image
+                                    }
+                                },
+                                {
+                                    type: "text",
+                                    text: aiPrompt
+                                }
+                            ]
+                        }
+                    ]
+                };
+
+                const command = new InvokeModelCommand({
+                    contentType: "application/json",
+                    body: JSON.stringify(payload),
+                    modelId: "anthropic.claude-3-haiku-20240307-v1:0"
+                });
+
+                const response = await client.send(command);
+                const decodedResponseBody = new TextDecoder().decode(response.body);
+                const aiData = JSON.parse(decodedResponseBody);
+                responseText = aiData.content[0].text;
                 
-                // Map album Name to Album ID
-                if (parsed.albumName) {
-                    const album = await prisma.album.findFirst({
-                        where: { name: parsed.albumName }
-                    });
-                    
-                    if (album) {
-                        albumId = album.id;
-                    } else {
-                        // Fallback mapping or null: Phase 8.5 strictly forbids ad-hoc album creation.
-                        // We could map invalid names to null (Uncategorized) so the user can manually sort them.
-                        console.warn(`[Ingest API] AI hallucinated unapproved album: ${parsed.albumName}`);
+                // Phase 9e: Cost & Token Telemetry Tracking
+                if (aiData.usage) {
+                    try {
+                        await prisma.adminConfig.update({
+                            where: { id: "admin" },
+                            data: {
+                                bedrockInputTokens: { increment: aiData.usage.input_tokens || 0 },
+                                bedrockOutputTokens: { increment: aiData.usage.output_tokens || 0 }
+                            }
+                        });
+                        console.log(`[Ingest API] Logged telemetry: ${aiData.usage.input_tokens} Input / ${aiData.usage.output_tokens} Output tokens`);
+                    } catch (e) {
+                        console.error("[Ingest API] Failed to log telemetry", e);
                     }
                 }
-                console.log("[Ingest API] LLaVA Analysis Success:", parsed);
             } else {
-                console.warn("[Ingest API] Ollama replied with error status", ollamaRes.status);
+                // Local Ollama (LLaVA)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+                const ollamaRes = await fetch("http://localhost:11434/api/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        model: "llava",
+                        prompt: aiPrompt,
+                        images: [base64Image],
+                        stream: false,
+                        format: "json",
+                    }),
+                });
+                clearTimeout(timeoutId);
+
+                if (ollamaRes.ok) {
+                    const aiData = await ollamaRes.json();
+                    responseText = aiData.response;
+                } else {
+                    throw new Error(`Ollama error status ${ollamaRes.status}`);
+                }
             }
+
+            // Parse responseText as JSON
+            let parsed;
+            try {
+                // Sometime LLMs wrap json in \`\`\`json ... \`\`\`
+                let cleanJson = responseText.trim();
+                if (cleanJson.startsWith('\`\`\`json')) cleanJson = cleanJson.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+                if (cleanJson.startsWith('\`\`\`')) cleanJson = cleanJson.replace(/\`\`\`/g, '').trim();
+                parsed = JSON.parse(cleanJson);
+            } catch (e) {
+                console.error("[Ingest API] Failed to parse AI JSON response:", responseText);
+                throw e;
+            }
+
+            if (parsed.title) title = parsed.title;
+            if (parsed.description) description = parsed.description;
+            
+            // Map album Name to Album ID
+            if (parsed.albumName) {
+                const album = await prisma.album.findFirst({
+                    where: { name: parsed.albumName }
+                });
+                
+                if (album) {
+                    albumId = album.id;
+                } else {
+                    console.warn(`[Ingest API] AI hallucinated unapproved album: ${parsed.albumName}`);
+                }
+            }
+            console.log(`[Ingest API] ${aiMode} Analysis Success:`, parsed);
+            
         } catch (aiError) {
-            console.warn("[Ingest API] Failed to connect to local Ollama. Falling back to default metadata. (Is Ollama running?)");
+            console.warn("[Ingest API] AI Inference Failed. Falling back to default metadata.", aiError);
         }
 
         // 5. Save to Database

@@ -38,6 +38,9 @@ model AdminConfig {
   username  String @default("admin")
   password  String
   siteTitle String @default("Lunar Gallery")
+  aiMode    String @default("local")
+  bedrockInputTokens  Int @default(0)
+  bedrockOutputTokens Int @default(0)
 }
 
 model Event {

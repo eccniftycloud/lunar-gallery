@@ -1,10 +1,12 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/app/lib/prisma";
-import { Settings, Database, User, Image, FolderOpen, Shield, KeyRound, Paintbrush, Sparkles } from "lucide-react";
+import { Settings, Database, User, Image, FolderOpen, Shield, KeyRound, Paintbrush, Sparkles, Cpu } from "lucide-react";
 import PasswordChangeForm from "./PasswordChangeForm";
 import TitleChangeForm from "./TitleChangeForm";
 import EventManager from "./EventManager";
+import AiToggleForm from "./AiToggleForm";
+import TelemetryWidget from "./TelemetryWidget";
 import { getAdminConfig, getAllEvents } from "@/app/lib/actions";
 
 export default async function SettingsPage() {
@@ -40,6 +42,18 @@ export default async function SettingsPage() {
                 <TitleChangeForm currentTitle={adminConfig?.siteTitle || "Lunar Gallery"} />
             </section>
 
+            {/* AI Engine Configuration */}
+            <section className="glass-panel rounded-2xl p-6 space-y-5">
+                <div className="flex items-center gap-3 mb-2">
+                    <Cpu className="w-5 h-5 text-nebula-400" />
+                    <div>
+                        <h2 className="text-lg font-semibold text-white">AI Engine</h2>
+                        <p className="text-xs text-gray-500">Switch between local and cloud processing for ingestion</p>
+                    </div>
+                </div>
+                <AiToggleForm currentMode={adminConfig?.aiMode || "local"} />
+            </section>
+
             {/* Current Events Management */}
             <section className="glass-panel rounded-2xl p-6 space-y-5">
                 <div className="flex items-center gap-3 mb-2">
@@ -50,6 +64,18 @@ export default async function SettingsPage() {
                     </div>
                 </div>
                 <EventManager events={events as any} />
+            </section>
+
+            {/* AWS Cost Telemetry */}
+            <section className="glass-panel rounded-2xl p-6 space-y-5 border-blue-500/20">
+                <div className="flex items-center gap-3 mb-2">
+                    <Database className="w-5 h-5 text-blue-400" />
+                    <div>
+                        <h2 className="text-lg font-semibold text-white">AWS Cost Telemetry</h2>
+                        <p className="text-xs text-gray-500">Live tracker for cloud AI token usage and estimated billing (Claude 3 Haiku pricing)</p>
+                    </div>
+                </div>
+                <TelemetryWidget inputTokens={adminConfig?.bedrockInputTokens || 0} outputTokens={adminConfig?.bedrockOutputTokens || 0} />
             </section>
 
             {/* Admin Account */}

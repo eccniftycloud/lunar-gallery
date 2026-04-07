@@ -3,6 +3,9 @@ import fs from "fs/promises";
 import path from "path";
 import FormData from "form-data";
 import fetch from "node-fetch";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 // --- Configuration ---
 const DROPZONE_DIR = path.join(process.cwd(), "dropzone");
@@ -17,19 +20,14 @@ console.log(`📁 Watching directory: ${DROPZONE_DIR}`);
 console.log(`⏳ Waiting for new astrophotography images...\n`);
 
 // --- Processing Queue Setup ---
-// We process files sequentially so we don't overwhelm the local LLaVA AI 
-// when syncing large batches of photos at once.
+// Phase 9d: Upgraded to Parallel Processing (Optimized for AWS Bedrock)
+// We dynamically check Prisma to see if we are using Cloud (limit 5) or Local (limit 1)
 const queue: string[] = [];
-let isProcessing = false;
+let activeWorkers = 0;
 
-async function processQueue() {
-  if (isProcessing || queue.length === 0) return;
-  isProcessing = true;
-
-  const filepath = queue.shift()!;
-  
+async function processFile(filepath: string, maxConcurrency: number) {
   try {
-    console.log(`\n[Watcher] 🚀 Processing file: ${path.basename(filepath)} (${queue.length} remaining in queue)`);
+    console.log(`\n[Watcher] 🚀 Processing file: ${path.basename(filepath)} [Active: ${activeWorkers}/${maxConcurrency}, Queued: ${queue.length}]`);
     
     // 1. Read file
     const fileBuffer = await fs.readFile(filepath);
@@ -53,7 +51,7 @@ async function processQueue() {
     }
 
     const data = await response.json();
-    console.log(`[Watcher] ✅ Success! Photo processed and saved to database.`);
+    console.log(`[Watcher] ✅ Success: ${path.basename(filepath)}`);
     if (data.photo?._title !== "Auto Upload") {
         if (data.photo?.title) console.log(`   └─ Title: ${data.photo.title}`);
         if (data.photo?.albumId) console.log(`   └─ Album: ${data.photo.albumId}`);
@@ -63,13 +61,35 @@ async function processQueue() {
 
     // 4. Delete the original file from the dropzone
     await fs.unlink(filepath);
-    console.log(`[Watcher] 🧹 Cleaned up dropzone file.\n`);
+    console.log(`[Watcher] 🧹 Cleaned up: ${path.basename(filepath)}\n`);
 
   } catch (error) {
-    console.error(`[Watcher] ❌ Failed to ingest file:`, error);
-  } finally {
-    isProcessing = false;
-    processQueue(); // Process next file in queue
+    console.error(`[Watcher] ❌ Failed to ingest file (${path.basename(filepath)}):`, error);
+  }
+}
+
+async function processQueue() {
+  if (queue.length === 0) return;
+
+  // Dynamically fetch the current AI mode from the database to aggressively protect your local hardware.
+  let maxConcurrency = 5; // Default for cloud
+  try {
+      const config = await prisma.adminConfig.findUnique({ where: { id: "admin" } });
+      if (config?.aiMode === "local") {
+          maxConcurrency = 1; // Strict single-threading for LLaVA
+      }
+  } catch (e) {
+      console.warn("[Watcher] Could not determine max concurrency from DB, defaulting to 1 for safety.");
+      maxConcurrency = 1;
+  }
+
+  while (activeWorkers < maxConcurrency && queue.length > 0) {
+    const filepath = queue.shift()!;
+    activeWorkers++;
+    processFile(filepath, maxConcurrency).finally(() => {
+      activeWorkers--;
+      processQueue(); // Kick off next item when a worker frees up
+    });
   }
 }
 

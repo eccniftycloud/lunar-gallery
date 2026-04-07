@@ -34,8 +34,12 @@ npm install
 
 # 3. Configure environment
 cp .env.example .env
-# Edit .env with your own secrets (see Security section below)
-
+# Edit .env with your own secrets, including NextAuth strings.
+# For Phase 9 Cloud AI features, you must also provide AWS Identity Center keys:
+# AWS_REGION="us-east-1"
+# AWS_ACCESS_KEY_ID="..."
+# AWS_SECRET_ACCESS_KEY="..."
+# AWS_SESSION_TOKEN="..." 
 # 4. Initialize the database
 npx prisma generate
 npx prisma db push

@@ -1,5 +1,8 @@
 FROM node:18-alpine AS base
 
+# Install dependencies needed for node-gyp, sharp etc.
+RUN apk add --no-cache libc6-compat
+
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
@@ -12,9 +15,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Run the build script.
-# We also run prisma generate to ensure the client is ready
-ENV DATABASE_URL="file:./dev.db"
+# Force DATABASE_URL to a persistent path during build
+ENV DATABASE_URL="file:./prisma/prod.db"
 RUN npx prisma generate
 RUN npm run build
 
@@ -22,29 +24,35 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV=production
+# Direct SQLite to the persistent prisma folder
+ENV DATABASE_URL="file:./prisma/prod.db"
 
-# We want to persist the uploads directory
-# Create the directory and set permissions
+# Install prisma globally to allow entrypoint to push db
+RUN npm install -g prisma
+
+# Create persistence directories
 RUN mkdir -p public/uploads
-RUN chown node:node public/uploads
+RUN chown -R node:node public/uploads
 
-# Create a place for the sqlite db if not exists
 RUN mkdir -p prisma
-RUN chown node:node prisma
+RUN chown -R node:node prisma
 
 # Copy the standalone output
-COPY --from=builder --chown=node:node /app/.next/standalone ./
-COPY --from=builder --chown=node:node /app/.next/static ./.next/static
-COPY --from=builder --chown=node:node /app/public ./public
-# Copy schema for migrations if needed, though usually migrations are run separatedly
-COPY --from=builder --chown=node:node /app/prisma ./prisma
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/prisma ./prisma
+
+# Add entrypoint for db sync
+COPY --from=builder /app/scripts/entrypoint.sh ./scripts/
+RUN chmod +x ./scripts/entrypoint.sh
+RUN chown -R node:node /app
 
 USER node
 
 EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
 
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"]
+CMD ["/bin/sh", "./scripts/entrypoint.sh"]

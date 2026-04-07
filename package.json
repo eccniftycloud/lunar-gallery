@@ -10,6 +10,7 @@
     "watch": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/file-watcher.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.967.0",
     "@prisma/client": "^6.19.2",
     "bcryptjs": "^3.0.3",
     "chokidar": "^4.0.3",
