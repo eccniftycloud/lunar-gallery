@@ -6,7 +6,7 @@ A stunning astrophotography gallery and observatory app built with Next.js, Pris
 
 ## ✨ Features
 
-- **Auto-Ingest AI Pipeline** — Automatically parses deep-space EXIF telemetry and uses local AI (Ollama + LLaVA) to dynamically title, describe, and categorize uploads into 8 strict astronomical albums.
+- **Hybrid Auto-Ingest AI Pipeline** — Automatically parses deep-space EXIF telemetry and uses a togglable AI Brain (Local **Ollama LLaVA** or Cloud **AWS Bedrock Claude 3**) to dynamically title, describe, and categorize uploads into 8 strict astronomical albums.
 - **High-Fidelity Storage** — Dual file-system preserving native uncompressed astrophotography binaries alongside optimized masonry thumbnails.
 - **Photo Management** — Upload with drag-and-drop or async Google Drive rclone syncs.
 - **Predefined Albums** — Locked structure of 8 predefined albums (*Solar System, Moon, Sun, Galaxies, Nebula, Superclusters, Constellations, Comets*) with beautiful preset covers.
