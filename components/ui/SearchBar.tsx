@@ -15,6 +15,8 @@ interface Photo {
     width: number | null;
     height: number | null;
     albumId: string | null;
+    tags?: string | null;
+    technicalData?: string | null;
 }
 
 interface Album {
@@ -102,7 +104,7 @@ export default function SearchBar({ isAdmin, albums }: SearchBarProps) {
                         value={query}
                         onChange={handleInputChange}
                         onFocus={handleFocus}
-                        placeholder="Search the cosmos... (title or description)"
+                        placeholder="Search the cosmos... (title, description, or tags)"
                         className="w-full bg-transparent text-white placeholder-gray-500 px-4 py-3 outline-none text-sm"
                         id="search-input"
                     />
@@ -152,6 +154,8 @@ export default function SearchBar({ isAdmin, albums }: SearchBarProps) {
                                             albumId={photo.albumId}
                                             isAdmin={isAdmin}
                                             albums={albums}
+                                            tags={(photo as any).tags || undefined}
+                                            technicalData={(photo as any).technicalData || undefined}
                                         />
                                     ))}
                                 </div>
@@ -163,7 +167,7 @@ export default function SearchBar({ isAdmin, albums }: SearchBarProps) {
                                     No celestial objects matched &quot;{query}&quot;
                                 </p>
                                 <p className="text-gray-600 text-xs mt-1">
-                                    Try searching by photo title or description
+                                    Try searching by title, description, or tags
                                 </p>
                             </div>
                         )}

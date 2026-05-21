@@ -61,12 +61,12 @@ export default async function Home() {
       </section>
 
       {/* Search */}
-      <section className="max-w-2xl mx-auto w-full px-4">
+      <section className="max-w-2xl mx-auto w-full">
         <SearchBar isAdmin={!!session?.user} albums={albums.map(a => ({ id: a.id, name: a.name }))} />
       </section>
 
       {/* Albums Section */}
-      <section>
+      <section className="w-full">
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <h2 className="text-2xl font-bold text-white">Albums</h2>
           <Link href="/albums" className="text-sm text-nebula-400 hover:text-nebula-300 flex items-center gap-1">
@@ -102,7 +102,7 @@ export default async function Home() {
       )}
 
       {/* Recent Photos Section */}
-      <section>
+      <section className="w-full">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold text-white">Recent Captures</h2>
           <Link href="/photos" className="text-sm text-nebula-400 hover:text-nebula-300 flex items-center gap-1">
@@ -130,6 +130,8 @@ export default async function Home() {
               viewMode="grid"
               // @ts-ignore - dominantColor available after prisma regenerate
               dominantColor={photo.dominantColor || undefined}
+              tags={photo.tags || undefined}
+              technicalData={photo.technicalData || undefined}
             />
           ))
           }

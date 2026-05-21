@@ -132,6 +132,81 @@ export async function POST(req: NextRequest) {
         let title = "Auto Upload";
         let description = null;
         let albumId = null;
+        let tags: string | null = null;
+        let technicalData: string | null = null;
+
+        // Phase 11c: Deep EXIF/FITS Telemetry Extraction
+        // Extract comprehensive technical specs BEFORE AI analysis so we can inject context AND store independently
+        let parsedExif: any = null;
+        try {
+            parsedExif = await exifr.parse(buffer, {
+                gps: false,
+                // Request all available EXIF/TIFF/IPTC tags
+                tiff: true,
+                exif: true,
+                iptc: true,
+                xmp: true,
+            });
+        } catch (exifErr) {
+            console.log("[Ingest API] No readable EXIF data found");
+        }
+
+        // Build technical data object from parsed EXIF
+        if (parsedExif) {
+            const techSpecs: Record<string, any> = {};
+
+            // Camera/Telescope identification
+            if (parsedExif.Make) techSpecs.make = parsedExif.Make;
+            if (parsedExif.Model) techSpecs.model = parsedExif.Model;
+            if (parsedExif.Software) techSpecs.software = parsedExif.Software;
+
+            // Capture timestamp
+            if (parsedExif.DateTimeOriginal) {
+                techSpecs.captureDate = parsedExif.DateTimeOriginal instanceof Date
+                    ? parsedExif.DateTimeOriginal.toISOString()
+                    : String(parsedExif.DateTimeOriginal);
+            }
+
+            // Exposure settings
+            if (parsedExif.ExposureTime != null) {
+                const expTime = parsedExif.ExposureTime;
+                techSpecs.exposureTime = expTime < 1
+                    ? `1/${Math.round(1 / expTime)}s`
+                    : `${expTime}s`;
+                techSpecs.exposureTimeRaw = expTime;
+            }
+            if (parsedExif.ISO != null) techSpecs.iso = parsedExif.ISO;
+            if (parsedExif.ISOSpeedRatings != null) techSpecs.iso = parsedExif.ISOSpeedRatings;
+            if (parsedExif.FNumber != null) techSpecs.fNumber = `f/${parsedExif.FNumber}`;
+            if (parsedExif.FocalLength != null) techSpecs.focalLength = `${parsedExif.FocalLength}mm`;
+            if (parsedExif.FocalLengthIn35mmFormat != null) techSpecs.focalLength35mm = `${parsedExif.FocalLengthIn35mmFormat}mm`;
+
+            // Astrophotography-specific fields
+            if (parsedExif.Gain != null) techSpecs.gain = parsedExif.Gain;
+            if (parsedExif.Temperature != null) techSpecs.sensorTemp = `${parsedExif.Temperature}°C`;
+            if (parsedExif.SensorTemperature != null) techSpecs.sensorTemp = `${parsedExif.SensorTemperature}°C`;
+            if (parsedExif.CCDTemperature != null) techSpecs.sensorTemp = `${parsedExif.CCDTemperature}°C`;
+            if (parsedExif.FrameCount != null) techSpecs.frameCount = parsedExif.FrameCount;
+            if (parsedExif.StackCount != null) techSpecs.stackCount = parsedExif.StackCount;
+
+            // Image dimensions
+            techSpecs.resolution = `${originalWidth}×${originalHeight}`;
+
+            // User-embedded descriptions/targets (common in telescope software)
+            if (parsedExif.ImageDescription) techSpecs.imageDescription = parsedExif.ImageDescription;
+            if (parsedExif.UserComment) techSpecs.userComment = parsedExif.UserComment;
+            if (parsedExif.Subject) techSpecs.subject = parsedExif.Subject;
+            if (parsedExif.Title) techSpecs.title = parsedExif.Title;
+
+            // White balance / color info
+            if (parsedExif.WhiteBalance != null) techSpecs.whiteBalance = parsedExif.WhiteBalance;
+
+            // Only store if we have meaningful data beyond just resolution
+            if (Object.keys(techSpecs).length > 1) {
+                technicalData = JSON.stringify(techSpecs);
+                console.log(`[Ingest API] Extracted ${Object.keys(techSpecs).length} technical specs`);
+            }
+        }
 
         try {
             let aiMode = "local";
@@ -145,28 +220,35 @@ export async function POST(req: NextRequest) {
             // sending the thumbBuffer saves bandwidth and Bedrock tokens immensely while retaining enough quality for classification.
             const base64Image = (aiMode === "cloud" ? thumbBuffer : buffer).toString("base64");
             
-            // Phase 8c: Parse EXIF data from astronomical fits/jpegs
+            // Phase 11c: Build rich EXIF context string for AI prompt injection
             let exifContext = "";
-            try {
-                // we use the original buffer, extract anything remotely looking like text/metadata
-                const parsedExif = await exifr.parse(buffer, { gps: false });
-                if (parsedExif) {
-                    const keysToKeep = ["Make", "Model", "Software", "DateTimeOriginal", "UserComment", "ImageDescription", "Subject", "Title"];
-                    const relevantData = Object.entries(parsedExif).filter(([key, value]) => {
-                        return keysToKeep.includes(key) || (typeof value === "string" && value.length > 2);
-                    }).slice(0, 8); // Keep it strictly brief
+            if (parsedExif) {
+                const keysToKeep = [
+                    "Make", "Model", "Software", "DateTimeOriginal",
+                    "UserComment", "ImageDescription", "Subject", "Title",
+                    "ExposureTime", "ISO", "ISOSpeedRatings", "FocalLength",
+                    "FNumber", "Gain", "Temperature", "FrameCount"
+                ];
+                const relevantData = Object.entries(parsedExif).filter(([key, value]) => {
+                    return keysToKeep.includes(key) || (typeof value === "string" && value.length > 2);
+                }).slice(0, 15); // Allow more context for richer analysis
 
-                    if (relevantData.length > 0) {
-                        const metadataPayload = Object.fromEntries(relevantData);
-                        exifContext = `\n\nCRITICAL CONTEXT FROM EMBEDDED TELESCOPE METADATA:\n${JSON.stringify(metadataPayload, null, 2)}\n\nUse this exact metadata to confidently identify the celestial object, correct its name, and determine its album category.`;
-                    }
+                if (relevantData.length > 0) {
+                    const metadataPayload = Object.fromEntries(relevantData);
+                    exifContext = `\n\nCRITICAL CONTEXT FROM EMBEDDED TELESCOPE/CAMERA METADATA:\n${JSON.stringify(metadataPayload, null, 2)}\n\nUse this exact metadata to confidently identify the celestial object, correct its name, reference its catalog designation, and determine its album category. If exposure data is present, consider whether long stacking or tracking was used.`;
                 }
-            } catch (exifErr) {
-                console.log("[Ingest API] No readable EXIF data found");
             }
 
-            // Phase 8d & 8g: Precision AI Prompt Architecture Tuning
-            const aiPrompt = `Analyze this astrophotography or celestial image.${exifContext}\n\nReturn ONLY a valid JSON object matching this exact shape, nothing else:\n{\n  "title": "A highly precise, aesthetic 2-5 word title (e.g. 'Andromeda Galaxy', 'Orion Nebula', 'Full Moon')",\n  "description": "A 1-2 sentence description explaining exactly what is visible astronomically.",\n  "albumName": "Choose EXACTLY ONE category: 'Solar System', 'Moon', 'Sun', 'Galaxies', 'Nebula', 'Superclusters', 'Constellations', or 'Comets'"\n}`;
+            // Phase 11a & 11b: Advanced AI Prompt with rich metadata + tagging
+            const aiPrompt = `You are an expert astrophotographer and astronomer analyzing a telescope or camera capture. Study this image carefully.${exifContext}
+
+Return ONLY a valid JSON object matching this EXACT schema — no markdown, no commentary:
+{
+  "title": "A precise 2-6 word title using the object's common AND catalog name when identifiable (e.g. 'M42 — Orion Nebula', 'NGC 7000 — North America Nebula', 'Waxing Gibbous Moon', 'Jupiter & Galilean Moons'). If a specific deep-sky object is ambiguous, describe what is seen.",
+  "description": "A rich 2-4 sentence description. Include: (1) what the object IS astronomically (type, classification), (2) its approximate distance or angular size if known, (3) the constellation it resides in if applicable, (4) any notable visual features visible in this specific capture (e.g. dust lanes, spiral arms, craters, prominences, color regions).",
+  "albumName": "Choose EXACTLY ONE: 'Solar System', 'Moon', 'Sun', 'Galaxies', 'Nebula', 'Superclusters', 'Constellations', or 'Comets'",
+  "tags": ["3 to 8 descriptive tags as an array of lowercase strings — include object type (e.g. 'emission nebula', 'spiral galaxy', 'lunar crater'), visual characteristics (e.g. 'colorful', 'wide-field', 'high-detail'), and relevant identifiers (e.g. 'messier object', 'ngc catalog', 'planetary')"]
+}`;
 
             let responseText = "";
 
@@ -176,7 +258,7 @@ export async function POST(req: NextRequest) {
                 
                 const payload = {
                     anthropic_version: "bedrock-2023-05-31",
-                    max_tokens: 500,
+                    max_tokens: 1024,
                     messages: [
                         {
                             role: "user",
@@ -225,16 +307,16 @@ export async function POST(req: NextRequest) {
                     }
                 }
             } else {
-                // Local Ollama (LLaVA)
+                // Local Ollama (Llama 3.2 Vision 11B)
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000);
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for larger 11b model
 
                 const ollamaRes = await fetch("http://localhost:11434/api/generate", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     signal: controller.signal,
                     body: JSON.stringify({
-                        model: "llava",
+                        model: "llama3.2-vision:11b",
                         prompt: aiPrompt,
                         images: [base64Image],
                         stream: false,
@@ -267,6 +349,19 @@ export async function POST(req: NextRequest) {
             if (parsed.title) title = parsed.title;
             if (parsed.description) description = parsed.description;
             
+            // Phase 11b: Store AI-generated tags as JSON string
+            if (parsed.tags && Array.isArray(parsed.tags)) {
+                // Normalize: lowercase, trim, deduplicate, limit to 8
+                const normalizedTags = [...new Set(
+                    parsed.tags
+                        .map((t: any) => String(t).toLowerCase().trim())
+                        .filter((t: string) => t.length > 0 && t.length < 50)
+                )].slice(0, 8);
+                if (normalizedTags.length > 0) {
+                    tags = JSON.stringify(normalizedTags);
+                }
+            }
+
             // Map album Name to Album ID
             if (parsed.albumName) {
                 const album = await prisma.album.findFirst({
@@ -297,6 +392,8 @@ export async function POST(req: NextRequest) {
                 description,
                 albumId,
                 dominantColor,
+                tags,
+                technicalData,
             },
         });
 

@@ -1,9 +1,32 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
-import { useEffect, useCallback } from "react";
+import { X, ChevronDown, ChevronUp, Camera, Clock, Crosshair, Thermometer, Layers, Aperture, Focus, Cpu, Calendar, Maximize } from "lucide-react";
+import { useEffect, useCallback, useState, useMemo } from "react";
 import { createPortal } from "react-dom";
+
+interface TechSpec {
+    make?: string;
+    model?: string;
+    software?: string;
+    captureDate?: string;
+    exposureTime?: string;
+    exposureTimeRaw?: number;
+    iso?: number;
+    fNumber?: string;
+    focalLength?: string;
+    focalLength35mm?: string;
+    gain?: number;
+    sensorTemp?: string;
+    frameCount?: number;
+    stackCount?: number;
+    resolution?: string;
+    imageDescription?: string;
+    userComment?: string;
+    subject?: string;
+    title?: string;
+    whiteBalance?: number;
+}
 
 interface PhotoLightboxProps {
     isOpen: boolean;
@@ -13,9 +36,31 @@ interface PhotoLightboxProps {
     description?: string;
     nativeWidth?: number;
     nativeHeight?: number;
+    tags?: string[];
+    technicalData?: string | null;
 }
 
-export default function PhotoLightbox({ isOpen, onClose, url, title, description, nativeWidth, nativeHeight }: PhotoLightboxProps) {
+// Map tech spec keys to human-readable labels and icons
+const SPEC_CONFIG: Record<string, { label: string; icon: React.ComponentType<any> }> = {
+    make: { label: "Camera/Telescope", icon: Camera },
+    model: { label: "Model", icon: Camera },
+    software: { label: "Software", icon: Cpu },
+    captureDate: { label: "Capture Date", icon: Calendar },
+    exposureTime: { label: "Exposure", icon: Clock },
+    iso: { label: "ISO", icon: Crosshair },
+    fNumber: { label: "Aperture", icon: Aperture },
+    focalLength: { label: "Focal Length", icon: Focus },
+    focalLength35mm: { label: "Focal (35mm eq.)", icon: Focus },
+    gain: { label: "Gain", icon: Crosshair },
+    sensorTemp: { label: "Sensor Temp", icon: Thermometer },
+    frameCount: { label: "Frames", icon: Layers },
+    stackCount: { label: "Stacked", icon: Layers },
+    resolution: { label: "Resolution", icon: Maximize },
+};
+
+export default function PhotoLightbox({ isOpen, onClose, url, title, description, nativeWidth, nativeHeight, tags, technicalData }: PhotoLightboxProps) {
+    const [showTechData, setShowTechData] = useState(false);
+
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         if (e.key === "Escape") onClose();
     }, [onClose]);
@@ -30,6 +75,51 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
             document.body.style.overflow = "";
         };
     }, [isOpen, handleKeyDown]);
+
+    // Reset tech data panel when lightbox closes
+    useEffect(() => {
+        if (!isOpen) setShowTechData(false);
+    }, [isOpen]);
+
+    // Parse technical data JSON
+    const techSpecs: TechSpec | null = useMemo(() => {
+        if (!technicalData) return null;
+        try {
+            return JSON.parse(technicalData);
+        } catch {
+            return null;
+        }
+    }, [technicalData]);
+
+    // Filter to displayable specs (skip raw values, descriptions that are shown elsewhere)
+    const displayableSpecs = useMemo(() => {
+        if (!techSpecs) return [];
+        const skipKeys = new Set(["exposureTimeRaw", "imageDescription", "userComment", "subject", "title", "whiteBalance"]);
+        return Object.entries(techSpecs)
+            .filter(([key, value]) => !skipKeys.has(key) && value != null && String(value).length > 0)
+            .map(([key, value]) => {
+                const config = SPEC_CONFIG[key];
+                let displayValue = String(value);
+
+                // Format captureDate nicely
+                if (key === "captureDate") {
+                    try {
+                        const d = new Date(value as string);
+                        displayValue = d.toLocaleDateString("en-US", {
+                            year: "numeric", month: "short", day: "numeric",
+                            hour: "2-digit", minute: "2-digit"
+                        });
+                    } catch { /* use raw string */ }
+                }
+
+                return {
+                    key,
+                    label: config?.label || key.replace(/([A-Z])/g, " $1").trim(),
+                    icon: config?.icon || Camera,
+                    value: displayValue,
+                };
+            });
+    }, [techSpecs]);
 
     const content = (
         <AnimatePresence>
@@ -96,8 +186,15 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                         animate={{ scale: 1, y: 0, opacity: 1 }}
                         exit={{ scale: 0.85, y: 20, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 280, damping: 24 }}
-                        className="relative z-10 flex flex-col max-w-[95vw] max-h-[95vh] lg:max-w-[90vw]"
-                        onClick={(e) => e.stopPropagation()}
+                        drag="y"
+                        dragConstraints={{ top: 0, bottom: 0 }}
+                        dragElastic={0.8}
+                        onDragEnd={(e, info) => {
+                            if (Math.abs(info.offset.y) > 50 || Math.abs(info.velocity.y) > 300) {
+                                onClose();
+                            }
+                        }}
+                        style={{ touchAction: "none", width: "100%", maxWidth: "95vw" }}
                     >
                         {/* Close button */}
                         <motion.button
@@ -131,10 +228,12 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                                 <motion.img
                                     src={url}
                                     alt={title || "Astronomy Photo"}
-                                    className="max-h-[75vh] max-w-full w-auto h-auto block"
+                                    className="max-h-[75vh] w-auto h-auto block mx-auto object-contain"
                                     style={{
-                                        ...(nativeWidth ? { maxWidth: `${nativeWidth}px` } : {}),
+                                        maxWidth: "100%",
+                                        ...(nativeWidth ? { maxWidth: `min(100%, ${nativeWidth}px)` } : {}),
                                         ...(nativeHeight ? { maxHeight: `min(75vh, ${nativeHeight}px)` } : {}),
+                                        pointerEvents: "none" // Prevents default image drag interference
                                     }}
                                     initial={{ opacity: 0, scale: 1.05 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -142,7 +241,7 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                                 />
 
                                 {/* Info pane — w-0 min-w-full prevents text from expanding container beyond image width */}
-                                {(title || description) && (
+                                {(title || description || (tags && tags.length > 0)) && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
@@ -175,8 +274,133 @@ export default function PhotoLightbox({ isOpen, onClose, url, title, description
                                                 {description}
                                             </motion.p>
                                         )}
+
+                                        {/* Phase 11b: Tags display as glassmorphism pills */}
+                                        {tags && tags.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 8 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.55, duration: 0.3 }}
+                                                className="hidden sm:flex flex-wrap gap-2 mt-3"
+                                            >
+                                                {tags.map((tag, i) => (
+                                                    <motion.span
+                                                        key={tag}
+                                                        initial={{ opacity: 0, scale: 0.8 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ delay: 0.6 + i * 0.05, duration: 0.2 }}
+                                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium
+                                                            bg-white/[0.07] backdrop-blur-md border border-white/[0.12]
+                                                            text-purple-200 hover:bg-white/[0.12] hover:border-purple-400/30
+                                                            transition-all duration-200 cursor-default"
+                                                        style={{
+                                                            boxShadow: "0 0 8px rgba(139, 92, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
+                                                        }}
+                                                    >
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400/60 mr-1.5" />
+                                                        {tag}
+                                                    </motion.span>
+                                                ))}
+                                            </motion.div>
+                                        )}
+
+                                        {/* Phase 11c: Technical Data toggle button */}
+                                        {displayableSpecs.length > 0 && (
+                                            <motion.button
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                transition={{ delay: 0.65, duration: 0.3 }}
+                                                onClick={() => setShowTechData(!showTechData)}
+                                                className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium
+                                                    bg-white/[0.05] backdrop-blur-md border border-white/[0.1]
+                                                    text-gray-300 hover:bg-white/[0.1] hover:text-white hover:border-purple-500/30
+                                                    transition-all duration-300 group"
+                                                style={{
+                                                    boxShadow: showTechData
+                                                        ? "0 0 20px rgba(139, 92, 246, 0.15), inset 0 1px 0 rgba(255,255,255,0.05)"
+                                                        : "inset 0 1px 0 rgba(255,255,255,0.05)",
+                                                }}
+                                            >
+                                                <Camera className="w-3.5 h-3.5 text-purple-400 group-hover:text-purple-300" />
+                                                Technical Data
+                                                {showTechData
+                                                    ? <ChevronUp className="w-3.5 h-3.5 ml-1" />
+                                                    : <ChevronDown className="w-3.5 h-3.5 ml-1" />
+                                                }
+                                            </motion.button>
+                                        )}
                                     </motion.div>
                                 )}
+
+                                {/* Phase 11c: Technical Data Glassmorphism Panel */}
+                                <AnimatePresence>
+                                    {showTechData && displayableSpecs.length > 0 && (
+                                        <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.35, ease: "easeInOut" }}
+                                            className="overflow-hidden w-0 min-w-full"
+                                        >
+                                            <div
+                                                className="px-5 sm:px-6 lg:px-8 pb-5 sm:pb-6 lg:pb-8 bg-gradient-to-b from-gray-950 to-gray-900/80"
+                                            >
+                                                {/* Decorative separator */}
+                                                <div className="mb-4 h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent" />
+
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                                                    {displayableSpecs.map((spec, i) => {
+                                                        const IconComponent = spec.icon;
+                                                        return (
+                                                            <motion.div
+                                                                key={spec.key}
+                                                                initial={{ opacity: 0, y: 10 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                transition={{ delay: i * 0.04, duration: 0.25 }}
+                                                                className="flex items-start gap-2.5 p-3 rounded-xl
+                                                                    bg-white/[0.03] border border-white/[0.06]
+                                                                    hover:bg-white/[0.06] hover:border-purple-500/20
+                                                                    transition-all duration-200"
+                                                                style={{
+                                                                    boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
+                                                                }}
+                                                            >
+                                                                <div className="flex-shrink-0 mt-0.5">
+                                                                    <IconComponent className="w-3.5 h-3.5 text-purple-400/70" />
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-0.5 truncate">
+                                                                        {spec.label}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-200 font-mono truncate" title={spec.value}>
+                                                                        {spec.value}
+                                                                    </p>
+                                                                </div>
+                                                            </motion.div>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Show extra notes from EXIF if available */}
+                                                {techSpecs && (techSpecs.imageDescription || techSpecs.userComment) && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        transition={{ delay: 0.3, duration: 0.3 }}
+                                                        className="mt-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]"
+                                                    >
+                                                        <p className="text-[10px] uppercase tracking-wider text-gray-500 font-medium mb-1">
+                                                            Telescope Notes
+                                                        </p>
+                                                        <p className="text-xs text-gray-300 leading-relaxed">
+                                                            {techSpecs.imageDescription || techSpecs.userComment}
+                                                        </p>
+                                                    </motion.div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
                             </div>
                         </div>
                     </motion.div>

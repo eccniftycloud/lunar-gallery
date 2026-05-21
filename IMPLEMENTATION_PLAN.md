@@ -28,8 +28,16 @@
 ## 🧠 Phase 11: Improved AI Capabilities for Auto-Upload
 > *Goal: Upgrade the auto-ingestion AI logic to produce even richer, more accurate metadata and support custom user-defined triggers or improved detection.*
 
-- [ ] **11a — Advanced Metadata Generation**: Refine the prompt schema in `AGENTS.md` and `/api/ingest/route.ts` to improve title and description quality (e.g., extracting specific astronomical objects, measuring aesthetic quality).
-- [ ] **11b — Automated Tagging**: Introduce a robust tagging system powered by the updated AI model to automatically tag objects (e.g., "emission nebula", "globular cluster").
-- [ ] **11c — Technical Specs Extraction**: Configure the AI to deeply analyze FITS/EXIF telemetry (Exposure time, Gain, Focal Length, Sensor Temp) and generate a clean "Technical Data" overlay inside the Lightbox.
-- [ ] **11d — Capture Quality Scoring**: Have the AI formally critique astrophotography (star trailing, noise, focus) and assign a 1–10 quality score, enabling a "Best Of" sorting algorithm.
-- [ ] **11e — Semantic Search**: Integrate vector embeddings (e.g. AWS Titan Embeddings) so users can search conversationally — *"Show me wide-field red nebulas"* or *"Photos of the moon in February"*.
+- [x] **11a — Advanced Metadata Generation**: Refine the prompt schema in `AGENTS.md` and `/api/ingest/route.ts` to improve title and description quality (e.g., extracting specific astronomical objects, measuring aesthetic quality).
+- [x] **11b — Automated Tagging**: Introduce a robust tagging system powered by the updated AI model to automatically tag objects (e.g., "emission nebula", "globular cluster").
+- [x] **11c — Technical Specs Extraction**: Configure the AI to deeply analyze FITS/EXIF telemetry (Exposure time, Gain, Focal Length, Sensor Temp) and generate a clean "Technical Data" overlay inside the Lightbox.
+- [x] **11d — Local AI Model Upgrade**: Replace Ollama LLaVA 7B with Llama 3.2 Vision 11B for significantly improved local classification accuracy, structured JSON reliability, and astronomical knowledge — while remaining CPU-compatible on the Ryzen AI 9 HX 370.
+
+## 📱 Phase 12: Mobile Experience Overhaul & Layout Fixes
+> *Goal: Refine the mobile UX to feel like a native application (e.g., Instagram), fix residual desktop padding issues, and guarantee true readability across all viewport sizes.*
+
+- [ ] **12a — Mobile Feed Redesign:** Convert the mobile grid to an immersive vertical scrolling feed (Instagram-style) where image text fits perfectly beneath the photo without feeling cramped.
+- [x] **12b — Desktop Grid Padding Fix:** Resolve the `max-w-7xl` misalignment introduced previously to restore perfectly centered, uniform padding for the Desktop UI without shrinking cards.
+- [ ] **12c — Responsive Text Scaling:** Adjust the text typography inside the Lightbox and Photocards to scale dynamically on smaller phones so titles and descriptions never overlap or crowd the visual framing.
+- [ ] **12d — Seamless Mobile Modals:** Ensure the new technical data panels and image details expand smoothly within the mobile flow without blowing out the device width or hijacking the scroll momentum.
+- [ ] **12e — Design System Documentation (UI.md):** Create a master `UI.md` reference to codify glassmorphism tokens, mobile breakpoints, and accessibility standards to prevent layout regressions in future phases.

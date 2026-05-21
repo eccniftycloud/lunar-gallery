@@ -30,6 +30,8 @@ model Photo {
   highResUrl     String?
   displayUrl     String?
   dominantColor  String?
+  tags           String?
+  technicalData  String?
   album       Album?   @relation(fields: [albumId], references: [id])
 }
 

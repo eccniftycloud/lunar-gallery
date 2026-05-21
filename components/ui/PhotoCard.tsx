@@ -30,9 +30,13 @@ interface PhotoCardProps {
     albums?: Album[];
     viewMode?: ViewMode;
     dominantColor?: string;
+    tags?: string;
+    technicalData?: string;
 }
 
-export default function PhotoCard({ id, url, displayUrl, highResUrl, title, description, width, height, albumId, isAdmin, albums, viewMode = "grid", dominantColor }: PhotoCardProps) {
+export default function PhotoCard({ id, url, displayUrl, highResUrl, title, description, width, height, albumId, isAdmin, albums, viewMode = "grid", dominantColor, tags, technicalData }: PhotoCardProps) {
+    // Parse tags from JSON string to array
+    const parsedTags: string[] = tags ? (() => { try { return JSON.parse(tags); } catch { return []; } })() : [];
     const router = useRouter();
     const { addToast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
@@ -127,7 +131,7 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
         >
             <div
                 className={`relative w-full overflow-hidden ${
-                    isGrid ? "aspect-square" : ""
+                    isGrid ? "sm:aspect-square" : ""
                 }`}
                 style={bgStyle || { backgroundColor: "rgba(0,0,0,0.5)" }}
             >
@@ -140,7 +144,7 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className={`${
                             isGrid
-                                ? "absolute inset-0 w-full h-full object-cover"
+                                ? "w-full h-auto sm:absolute sm:inset-0 sm:w-full sm:h-full sm:object-cover"
                                 : "w-full h-auto object-cover"
                         } transition-transform duration-500 group-hover:scale-105 cursor-pointer block`}
                         onClick={() => setLightboxOpen(true)}
@@ -151,7 +155,7 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
                         alt={title || "Astronomy Photo"}
                         className={`${
                             isGrid
-                                ? "absolute inset-0 w-full h-full object-cover"
+                                ? "w-full h-auto sm:absolute sm:inset-0 sm:w-full sm:h-full sm:object-cover"
                                 : "w-full h-auto object-cover"
                         } transition-transform duration-500 group-hover:scale-105 cursor-pointer block`}
                         loading="lazy"
@@ -337,6 +341,8 @@ export default function PhotoCard({ id, url, displayUrl, highResUrl, title, desc
                 description={description}
                 nativeWidth={effectiveWidth}
                 nativeHeight={effectiveHeight}
+                tags={parsedTags.length > 0 ? parsedTags : undefined}
+                technicalData={technicalData || undefined}
             />
         </motion.div>
     );

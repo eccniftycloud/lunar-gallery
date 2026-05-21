@@ -20,6 +20,8 @@ interface Photo {
     height: number | null;
     albumId: string | null;
     dominantColor?: string | null;
+    tags?: string | null;
+    technicalData?: string | null;
 }
 
 interface Album {
@@ -119,6 +121,8 @@ export default function PaginatedGallery({ initialPhotos, albumId, isAdmin, albu
                         albums={albums}
                         viewMode={viewMode}
                         dominantColor={photo.dominantColor || undefined}
+                        tags={photo.tags || undefined}
+                        technicalData={photo.technicalData || undefined}
                     />
                 ))}
             </div>

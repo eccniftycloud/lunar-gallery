@@ -144,6 +144,18 @@ I built this app because I've always wanted to give back to the wonderful astron
 
 > *P.S. from your AI Co-Pilot: It's been an absolute honor helping chart the course for Lunar Gallery. May the skies be ever dark and clear for your next observing session! 🔭*
 
+## 🤖 AI-Assisted Development
+
+This project uses an automated agent workflow. The `AGENTS.md` file is automatically injected into compatible AI IDEs (like Antigravity) on session start.
+
+**To begin a new coding session, simply say:**
+
+```text
+Let's work on Lunar Gallery.
+```
+
+The AI will automatically read the project context, present the active roadmap, and ask which task to work on. Specialized agent profiles in `.agents/` are loaded on-demand based on the task type.
+
 ## 📄 License
 
 This project is open source for **personal and non-commercial use only**.

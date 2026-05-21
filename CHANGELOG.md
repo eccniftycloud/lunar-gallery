@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased / Next Feature]
 
+## [1.4.0] - 2026-04-06
+### Added (Phase 11: Improved AI Capabilities)
+- **Advanced Metadata Generation (Phase 11a):** Completely rewritten AI prompt architecture. Claude now receives an expert astrophotographer persona, requests catalog designations (M42, NGC 7000), constellation context, distance information, and visual feature analysis. Titles use the `"M31 — Andromeda Galaxy"` format. Descriptions expanded from 1-2 to 2-4 sentences with scientific depth. `max_tokens` increased from 500 → 1024.
+- **Automated Tagging (Phase 11b):** New `tags` field on the `Photo` model (JSON string array stored as SQLite text). Claude now returns 3-8 descriptive tags per image covering object type (e.g., "emission nebula", "spiral galaxy"), visual characteristics ("colorful", "wide-field"), and catalog identifiers ("messier object", "ngc catalog"). Tags are normalized, deduplicated, and displayed as glassmorphism pills in the Lightbox info pane with staggered entry animations and purple glow accents.
+- **Technical Specs Extraction (Phase 11c):** New `technicalData` field on the `Photo` model (JSON object stored as SQLite text). Deep EXIF/FITS parser extracts: Make, Model, Software, Exposure Time, ISO, F-Number, Focal Length, Gain, Sensor Temperature, Frame/Stack Count, and Resolution. A collapsible "Technical Data" glassmorphism overlay panel in the Lightbox displays specs in a responsive grid with Lucide icons (Camera, Clock, Thermometer, etc.) and animated entry.
+- **Local AI Engine Swap (Phase 11d):** Upgraded the local fallback AI from Ollama `llava` (7B) to the significantly smarter `llama3.2-vision:11b`. Generates vastly improved structured JSON tagging and features accurate astronomical object identification during local offline sync operations.
+- **Search Upgrade:** `searchPhotos` now queries against `tags` in addition to `title` and `description`, enabling tag-based discovery (e.g., searching "emission nebula" finds all tagged photos).
+- **Prisma Schema:** Added `tags` and `technicalData` fields to the `Photo` model.
+- **EXIF Expansion:** Parser now captures 15+ metadata keys including astrophotography-specific fields (Gain, SensorTemperature, CCDTemperature, FrameCount, StackCount) alongside standard camera EXIF.
+
 ## [1.3.0] - 2026-04-06
 ### Added (Phase 9: Advanced Cloud Architecture)
 - **AWS Bedrock Configuration (Phase 9a):** Safely integrated AWS environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`) into `.env` to prepare for cloud AI ingestion. Verified local AWS SDK connectivity.

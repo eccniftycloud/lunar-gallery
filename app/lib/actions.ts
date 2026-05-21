@@ -276,22 +276,22 @@ export async function searchPhotos(query: string, albumId?: string) {
 
     if (albumId) {
         return prisma.$queryRawUnsafe(
-            `SELECT id, url, displayUrl, highResUrl, title, description, width, height, albumId, createdAt
+            `SELECT id, url, displayUrl, highResUrl, title, description, width, height, albumId, createdAt, tags, technicalData
              FROM Photo
-             WHERE albumId = ? AND (title LIKE ? OR description LIKE ?)
+             WHERE albumId = ? AND (title LIKE ? OR description LIKE ? OR tags LIKE ?)
              ORDER BY createdAt DESC
              LIMIT 100`,
-            albumId, searchTerm, searchTerm
+            albumId, searchTerm, searchTerm, searchTerm
         );
     }
 
     return prisma.$queryRawUnsafe(
-        `SELECT id, url, displayUrl, highResUrl, title, description, width, height, albumId, createdAt
+        `SELECT id, url, displayUrl, highResUrl, title, description, width, height, albumId, createdAt, tags, technicalData
          FROM Photo
-         WHERE title LIKE ? OR description LIKE ?
+         WHERE title LIKE ? OR description LIKE ? OR tags LIKE ?
          ORDER BY createdAt DESC
          LIMIT 100`,
-        searchTerm, searchTerm
+        searchTerm, searchTerm, searchTerm
     );
 }
 

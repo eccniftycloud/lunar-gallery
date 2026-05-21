@@ -56,12 +56,12 @@ backups/
 
 # Internal project docs (not for public repo)
 AI_ARCHITECTURE.md
-IMPLEMENTATION_PLAN.md
 PROJECT_STATUS.md
 
 # AI/agent tooling
 .gemini/
-.agents/
+.agents/*
+!.agents/*.md
 .agent/
 _agents/
 _agent/
